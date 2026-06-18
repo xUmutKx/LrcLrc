@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="seed_primary">#7C5CFF</color>
+    <color name="seed_primary_dark">#C9BBFF</color>
+    <color name="seed_on_primary">#FFFFFF</color>
+
+    <color name="amoled_background">#000000</color>
+    <color name="amoled_surface">#000000</color>
+    <color name="amoled_surface_variant">#0D0D0D</color>
+
+    <color name="match_highlight">#7C5CFF</color>
+    <color name="match_highlight_on">#FFFFFF</color>
+    <color name="context_text_light">#79747E</color>
+    <color name="context_text_dark">#938F99</color>
+
+    <color name="ic_launcher_background">#1A1040</color>
+</resources>

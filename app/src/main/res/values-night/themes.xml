@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.LRCFinder" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/seed_primary_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+    </style>
+    <style name="Theme.LRCFinder.Amoled" parent="Theme.LRCFinder">
+        <item name="android:windowBackground">@color/amoled_background</item>
+        <item name="colorSurface">@color/amoled_surface</item>
+        <item name="colorSurfaceContainer">@color/amoled_surface</item>
+        <item name="colorSurfaceContainerLow">@color/amoled_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/amoled_surface_variant</item>
+        <item name="colorSurfaceContainerHighest">@color/amoled_surface_variant</item>
+        <item name="colorSurfaceVariant">@color/amoled_surface_variant</item>
+        <item name="android:statusBarColor">@color/amoled_background</item>
+        <item name="android:navigationBarColor">@color/amoled_background</item>
+    </style>
+</resources>

@@ -1,0 +1,2 @@
+rootProject.name = "LRCFinder"
+include ':app'
