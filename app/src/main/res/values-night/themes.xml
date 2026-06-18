@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.LRCFinder" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/seed_primary_dark</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="colorPrimary">@color/seed_primary</item>
+        <item name="colorOnPrimary">@color/seed_on_primary</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">?attr/colorSurface</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLightStatusBar">false</item>
     </style>
     <style name="Theme.LRCFinder.Amoled" parent="Theme.LRCFinder">
-        <item name="android:windowBackground">@color/amoled_background</item>
-        <item name="colorSurface">@color/amoled_surface</item>
-        <item name="colorSurfaceContainer">@color/amoled_surface</item>
-        <item name="colorSurfaceContainerLow">@color/amoled_surface</item>
-        <item name="colorSurfaceContainerHigh">@color/amoled_surface_variant</item>
-        <item name="colorSurfaceContainerHighest">@color/amoled_surface_variant</item>
-        <item name="colorSurfaceVariant">@color/amoled_surface_variant</item>
-        <item name="android:statusBarColor">@color/amoled_background</item>
-        <item name="android:navigationBarColor">@color/amoled_background</item>
+        <item name="colorSurface">#000000</item>
+        <item name="colorSurfaceContainer">#0D0D0D</item>
+        <item name="colorSurfaceContainerHigh">#141414</item>
+        <item name="colorSurfaceContainerLow">#080808</item>
     </style>
 </resources>

@@ -212,6 +212,38 @@
                 android:text="@string/settings_clear_log" />
         </LinearLayout>
 
+
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:layout_marginTop="20dp" android:layout_marginBottom="8dp"
+            android:background="?attr/colorOutlineVariant" />
+
+        <!-- Library View: grid columns -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/settings_grid_section"
+            android:textColor="?attr/colorOnSurface"
+            android:textStyle="bold" android:textSize="14sp" />
+
+        <TextView android:id="@+id/gridColsPortraitLabel"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="?attr/colorOnSurface" android:textSize="15sp" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/gridColsPortraitSlider"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:valueFrom="1" android:valueTo="5" android:stepSize="1" />
+
+        <TextView android:id="@+id/gridColsLandscapeLabel"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="?attr/colorOnSurface" android:textSize="15sp" />
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/gridColsLandscapeSlider"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:valueFrom="2" android:valueTo="6" android:stepSize="1" />
+
         <View android:layout_width="match_parent" android:layout_height="1dp"
             android:layout_marginTop="20dp" android:layout_marginBottom="8dp"
             android:background="?attr/colorOutlineVariant" />

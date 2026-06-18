@@ -144,6 +144,16 @@ public class Prefs {
     // Developer / project info
     public static final String GITHUB_URL = "https://github.com/xUmutKx/LrcLrc";
 
+
+    // Grid layout columns (portrait / landscape separately)
+    private static final String KEY_GRID_COLS_PORTRAIT  = "grid_cols_portrait";
+    private static final String KEY_GRID_COLS_LANDSCAPE = "grid_cols_landscape";
+
+    public int getGridColsPortrait()  { return sp.getInt(KEY_GRID_COLS_PORTRAIT,  2); }
+    public int getGridColsLandscape() { return sp.getInt(KEY_GRID_COLS_LANDSCAPE, 4); }
+    public void setGridColsPortrait(int v)  { sp.edit().putInt(KEY_GRID_COLS_PORTRAIT,  Math.max(1, Math.min(5, v))).apply(); }
+    public void setGridColsLandscape(int v) { sp.edit().putInt(KEY_GRID_COLS_LANDSCAPE, Math.max(2, Math.min(6, v))).apply(); }
+
     // Debug logging toggle (Settings > Developer x5 taps, or its own switch)
     private static final String KEY_DEBUG_LOGGING = "debug_logging";
 

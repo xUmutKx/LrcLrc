@@ -4,8 +4,33 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Simple, unmistakable eighth-note glyph (Material "music_note" path, scaled 4.5x) -->
+
+    <!-- Sekizlik nota — sol anahtara benzer ince zarifçe -->
+    <!-- Nota gövdesi (elips) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,13.5v47.475c-2.655,-1.53 -5.715,-2.475 -9,-2.475 -9.945,0 -18,8.055 -18,18s8.055,18 18,18 18,-8.055 18,-18L63,31.5h18L81,13.5z" />
+        android:pathData="
+            M38,72
+            C38,66.477 42.925,62 49,62
+            C55.075,62 60,66.477 60,72
+            C60,77.523 55.075,82 49,82
+            C42.925,82 38,77.523 38,72 Z" />
+
+    <!-- Nota sapı (dikey çizgi) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:pathData="M58,72 L58,28" />
+
+    <!-- Bayrak (kuyruk) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="
+            M58,28
+            C58,28 72,34 72,46
+            C72,52 66,56 62,54
+            C58,52 58,46 64,43
+            C68,41 72,42 72,46" />
+
 </vector>

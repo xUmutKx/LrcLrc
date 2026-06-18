@@ -29,7 +29,7 @@
     <string name="settings_choose_folder">Choose folder</string>
 
     <string name="settings_case_insensitive">Case-insensitive search</string>
-    <string name="settings_case_insensitive_desc">Handles Turkish I / İ / ı / i correctly</string>
+    <string name="settings_case_insensitive_desc">Ignore uppercase / lowercase differences</string>
     <string name="settings_whole_word">Whole word only</string>
     <string name="settings_sort_by_hits">Sort results by hit count</string>
     <string name="settings_context_lines">Context lines: %d</string>
@@ -62,4 +62,13 @@
     <string name="unknown_album">Unknown Album</string>
     <string name="unknown_artist">Unknown Artist</string>
     <string name="songs_count">%d songs with lyrics</string>
+
+    <!-- Grid layout -->
+    <string name="settings_grid_section">Library View</string>
+    <string name="settings_grid_cols_portrait">Columns (portrait): %d</string>
+    <string name="settings_grid_cols_landscape">Columns (landscape): %d</string>
+
+    <!-- Easter egg -->
+    <string name="easter_egg_title">🎵 Seni Yakaladım!</string>
+    <string name="easter_egg_msg">Gizli modu buldun.\n\nLrcLrc v%1$s (build %2$d)\nYapımcı: xUmutKx\n\nTürkçe söz ara. Hızlıca bul. 🎶</string>
 </resources>

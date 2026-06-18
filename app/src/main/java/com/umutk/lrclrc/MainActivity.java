@@ -162,7 +162,7 @@ public class MainActivity extends BaseActivity {
     private int browseColumnCount() {
         boolean landscape = getResources().getConfiguration().orientation
                 == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
-        return landscape ? 4 : 2;
+        return landscape ? prefs.getGridColsLandscape() : prefs.getGridColsPortrait();
     }
 
     /** Shared by the search-results play button, the clickable lyric line, and the browse grid tile. */

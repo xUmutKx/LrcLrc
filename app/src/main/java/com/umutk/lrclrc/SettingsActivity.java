@@ -29,6 +29,7 @@ public class SettingsActivity extends BaseActivity {
 
     private TextView currentDirText;
     private Slider   contextLinesSlider;
+    private Slider   gridColsPortraitSlider, gridColsLandscapeSlider;
 
     private final ActivityResultLauncher<Uri> folderPicker =
             registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), uri -> {
@@ -62,6 +63,8 @@ public class SettingsActivity extends BaseActivity {
         View           debugActionsRow = findViewById(R.id.debugLogActionsRow);
 
         contextLinesSlider         = findViewById(R.id.contextLinesSlider);
+        gridColsPortraitSlider  = findViewById(R.id.gridColsPortraitSlider);
+        gridColsLandscapeSlider = findViewById(R.id.gridColsLandscapeSlider);
         TextInputEditText maxResultsEdit = findViewById(R.id.maxResultsEditText);
 
         MaterialButtonToggleGroup themeGroup  = findViewById(R.id.themeToggleGroup);
@@ -83,6 +86,9 @@ public class SettingsActivity extends BaseActivity {
         sortSwitch.setChecked(prefs.isSortByHits());
         amoledSwitch.setChecked(prefs.isAmoled());
         maxResultsEdit.setText(String.valueOf(prefs.getMaxResults()));
+        gridColsPortraitSlider.setValue(prefs.getGridColsPortrait());
+        gridColsLandscapeSlider.setValue(prefs.getGridColsLandscape());
+        updateGridLabels();
 
         // Debug logging row (switch + description) is hidden by default; only the
         // 5-tap easter egg on "Developer" reveals it. Previously only debugActionsRow
@@ -120,6 +126,14 @@ public class SettingsActivity extends BaseActivity {
         contextLinesSlider.addOnChangeListener((s, val, fromUser) -> {
             prefs.setContextLines((int) val);
             updateContextLabel();
+        });
+        gridColsPortraitSlider.addOnChangeListener((s, val, fromUser) -> {
+            prefs.setGridColsPortrait((int) val);
+            updateGridLabels();
+        });
+        gridColsLandscapeSlider.addOnChangeListener((s, val, fromUser) -> {
+            prefs.setGridColsLandscape((int) val);
+            updateGridLabels();
         });
 
         maxResultsEdit.addTextChangedListener(new TextWatcher() {
@@ -192,6 +206,15 @@ public class SettingsActivity extends BaseActivity {
 
     private void updateDirDisplay() {
         currentDirText.setText(prefs.getSearchDir());
+    }
+
+    private void updateGridLabels() {
+        TextView p = findViewById(R.id.gridColsPortraitLabel);
+        TextView l = findViewById(R.id.gridColsLandscapeLabel);
+        if (p != null) p.setText(getString(R.string.settings_grid_cols_portrait,
+                (int) gridColsPortraitSlider.getValue()));
+        if (l != null) l.setText(getString(R.string.settings_grid_cols_landscape,
+                (int) gridColsLandscapeSlider.getValue()));
     }
 
     private void updateContextLabel() {
