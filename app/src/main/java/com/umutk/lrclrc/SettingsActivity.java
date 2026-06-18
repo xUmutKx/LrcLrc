@@ -57,8 +57,8 @@ public class SettingsActivity extends BaseActivity {
         MaterialSwitch wwSwitch        = findViewById(R.id.wholeWordSwitch);
         MaterialSwitch sortSwitch      = findViewById(R.id.sortByHitsSwitch);
         MaterialSwitch amoledSwitch    = findViewById(R.id.amoledSwitch);
-        MaterialSwitch seekSwitch      = findViewById(R.id.powerampSeekSwitch);
         MaterialSwitch debugSwitch     = findViewById(R.id.debugLoggingSwitch);
+        View           debugRow        = findViewById(R.id.debugLoggingRow);
         View           debugActionsRow = findViewById(R.id.debugLogActionsRow);
 
         contextLinesSlider         = findViewById(R.id.contextLinesSlider);
@@ -82,12 +82,14 @@ public class SettingsActivity extends BaseActivity {
         wwSwitch.setChecked(prefs.isWholeWord());
         sortSwitch.setChecked(prefs.isSortByHits());
         amoledSwitch.setChecked(prefs.isAmoled());
-        seekSwitch.setChecked(prefs.isPowerampSeekEnabled());
         maxResultsEdit.setText(String.valueOf(prefs.getMaxResults()));
 
-        // Debug logging hidden by default; revealed by 5-tap easter egg
+        // Debug logging row (switch + description) is hidden by default; only the
+        // 5-tap easter egg on "Developer" reveals it. Previously only debugActionsRow
+        // (the share/clear buttons) was hidden, so the switch itself always showed.
         boolean debugOn = prefs.isDebugLoggingEnabled();
         debugSwitch.setChecked(debugOn);
+        debugRow.setVisibility(debugOn ? View.VISIBLE : View.GONE);
         debugActionsRow.setVisibility(debugOn ? View.VISIBLE : View.GONE);
         DebugLog.setEnabled(debugOn);
 
@@ -110,7 +112,6 @@ public class SettingsActivity extends BaseActivity {
         ciSwitch.setOnCheckedChangeListener((v, c) -> prefs.setCaseInsensitive(c));
         wwSwitch.setOnCheckedChangeListener((v, c) -> prefs.setWholeWord(c));
         sortSwitch.setOnCheckedChangeListener((v, c) -> prefs.setSortByHits(c));
-        seekSwitch.setOnCheckedChangeListener((v, c) -> prefs.setPowerampSeekEnabled(c));
         amoledSwitch.setOnCheckedChangeListener((v, c) -> {
             prefs.setAmoled(c);
             recreate();
@@ -179,8 +180,10 @@ public class SettingsActivity extends BaseActivity {
                                 + "github.com/xUmutKx/LrcLrc\n\n"
                                 + "Debug logging unlocked below.\n"
                                 + "Log file stays on your device only.")
-                        .setPositiveButton("Got it", (d, w) ->
-                                debugActionsRow.setVisibility(View.VISIBLE))
+                        .setPositiveButton("Got it", (d, w) -> {
+                                debugRow.setVisibility(View.VISIBLE);
+                                debugActionsRow.setVisibility(View.VISIBLE);
+                        })
                         .setNegativeButton("Close", null)
                         .show();
             }

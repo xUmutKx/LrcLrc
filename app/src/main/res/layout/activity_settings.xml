@@ -175,30 +175,15 @@
             android:layout_marginTop="20dp" android:layout_marginBottom="8dp"
             android:background="?attr/colorOutlineVariant" />
 
-        <!-- Poweramp -->
-        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:text="@string/settings_poweramp"
-            android:textColor="?attr/colorOnSurface" android:textStyle="bold" android:textSize="14sp" />
-
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="@string/settings_poweramp_seek" android:textColor="?attr/colorOnSurface" android:textSize="15sp" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="@string/settings_poweramp_seek_desc" android:textColor="?attr/colorOnSurfaceVariant" android:textSize="12sp" />
-            </LinearLayout>
-            <com.google.android.material.materialswitch.MaterialSwitch android:id="@+id/powerampSeekSwitch"
-                android:layout_width="wrap_content" android:layout_height="wrap_content" />
-        </LinearLayout>
-
         <View android:layout_width="match_parent" android:layout_height="1dp"
             android:layout_marginTop="20dp" android:layout_marginBottom="8dp"
             android:background="?attr/colorOutlineVariant" />
 
         <!-- Debug logging -->
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:gravity="center_vertical" android:orientation="horizontal">
+        <LinearLayout android:id="@+id/debugLoggingRow"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:gravity="center_vertical" android:orientation="horizontal"
+            android:visibility="gone">
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:text="@string/settings_debug_logging" android:textColor="?attr/colorOnSurface" android:textSize="15sp" />

@@ -171,28 +171,8 @@ public class MainActivity extends BaseActivity {
             Toast.makeText(this, R.string.audio_file_missing, Toast.LENGTH_SHORT).show();
             return;
         }
-        boolean powerampInstalled = PowerampHelper.isInstalled(this);
-        DebugLog.d(this, "Play", "playSong: " + song.title + " seekSeconds=" + seekSeconds
-                + " powerampInstalled=" + powerampInstalled);
-        List<String> options = new ArrayList<>();
-        if (powerampInstalled) options.add(getString(R.string.play_in_poweramp_seek));
-        options.add(getString(R.string.play_choose_app));
-
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.play_dialog_title)
-                .setItems(options.toArray(new String[0]), (dialog, which) -> {
-                    boolean pickedPoweramp = powerampInstalled && which == 0;
-                    if (pickedPoweramp) {
-                        // Only actually seek if the user enabled this in Settings;
-                        // otherwise Poweramp just opens and plays from the start.
-                        int seek = prefs.isPowerampSeekEnabled() ? seekSeconds : -1;
-                        boolean ok = PowerampHelper.playAt(this, song.audioPath, seek);
-                        if (!ok) openWithChooser(song.audioPath);
-                    } else {
-                        openWithChooser(song.audioPath);
-                    }
-                })
-                .show();
+        DebugLog.d(this, "Play", "playSong: " + song.title + " seekSeconds=" + seekSeconds);
+        openWithChooser(song.audioPath);
     }
 
     private void openWithChooser(String audioPath) {
@@ -338,15 +318,20 @@ public class MainActivity extends BaseActivity {
 
                 @Override public void onProgress(int scanned, int total, int songsFound) {
                     runOnUiThread(() -> {
-                        if (!cacheHitThisRun) {
+                        String q = currentQuery();
+                        boolean searching = !q.isEmpty();
+                        if (!cacheHitThisRun && !searching) {
                             indexingOverlay.setVisibility(View.VISIBLE);
                             int pct = total > 0 ? Math.min(100, scanned * 100 / total) : 0;
                             indexingLabel.setText(getString(R.string.status_indexing_first_time)
                                     + "  " + pct + "%  (" + songsFound + " songs)");
+                        } else {
+                            // Don't let the overlay hide results that already exist for what's
+                            // been indexed so far - searching should never feel like it's waiting.
+                            indexingOverlay.setVisibility(View.GONE);
                         }
                         if (isShowingBrowse) refreshBrowseList();
-                        String q = currentQuery();
-                        if (!q.isEmpty()) scheduleSearch(q);
+                        if (searching) scheduleSearch(q);
                     });
                 }
 

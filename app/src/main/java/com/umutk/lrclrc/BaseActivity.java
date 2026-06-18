@@ -36,5 +36,6 @@ public abstract class BaseActivity extends AppCompatActivity {
             v.setPadding(v.getPaddingLeft(), topInset, v.getPaddingRight(), v.getPaddingBottom());
             return insets;
         });
+        ViewCompat.requestApplyInsets(view);
     }
 }

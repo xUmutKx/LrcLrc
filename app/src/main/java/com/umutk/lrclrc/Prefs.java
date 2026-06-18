@@ -156,18 +156,6 @@ public class Prefs {
         DebugLog.setEnabled(v);
     }
 
-    // When the play dialog is shown and the user picks Poweramp, jump straight
-    // to the matched lyric line's timestamp instead of just opening the track.
-    private static final String KEY_POWERAMP_SEEK = "poweramp_seek_enabled";
-
-    public boolean isPowerampSeekEnabled() {
-        return sp.getBoolean(KEY_POWERAMP_SEEK, true);
-    }
-
-    public void setPowerampSeekEnabled(boolean v) {
-        sp.edit().putBoolean(KEY_POWERAMP_SEEK, v).apply();
-    }
-
     // Show songs without any audio that doesn't have lyrics? Always false in this
     // app's design — only songs with a parsed .lrc file are indexed. Kept as a constant
     // (not a real toggle) so the design decision is documented in one place.
