@@ -129,9 +129,8 @@ public class Prefs {
     public void clearHistory() {
         sp.edit().remove(KEY_HISTORY).apply();
     }
-}
 
-    // ── What's New version tracking ──────────────────────────────────────────
+    // What's New version tracking
     private static final String KEY_LAST_VERSION = "last_seen_version";
 
     public String getLastSeenVersion() {
@@ -144,3 +143,4 @@ public class Prefs {
 
     // Developer / project info
     public static final String GITHUB_URL = "https://github.com/xUmutKx/LrcLrc";
+}
