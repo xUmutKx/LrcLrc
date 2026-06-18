@@ -11,7 +11,6 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.TextView;
@@ -125,13 +124,17 @@ public class MainActivity extends BaseActivity {
 
     private void setupDrawer() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setOnMenuItemClickListener(this::onMenuItemClick);
+        applyTopInset(toolbar);
         toolbar.setNavigationOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
 
         NavigationView navView = findViewById(R.id.navigationView);
         navView.setNavigationItemSelectedListener(item -> {
             drawerLayout.closeDrawers();
             int id = item.getItemId();
+            if (id == R.id.nav_search) {
+                searchEditText.requestFocus();
+                return true;
+            }
             if (id == R.id.nav_history)  { showHistory();  return true; }
             if (id == R.id.nav_reindex)  { reindex();      return true; }
             if (id == R.id.nav_settings) {
@@ -146,9 +149,20 @@ public class MainActivity extends BaseActivity {
     private void setupAdapters() {
         resultsAdapter = new ResultsAdapter(this, (song, seekSeconds) -> playSong(song, seekSeconds));
         browseAdapter = new BrowseAdapter(song -> playSong(song, -1));
-        resultsRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+        resultsRecyclerView.setLayoutManager(new GridLayoutManager(this, browseColumnCount()));
         resultsRecyclerView.setAdapter(browseAdapter);
         isShowingBrowse = true;
+    }
+
+    /**
+     * Album art tiles were the same fixed width in portrait and landscape, which made
+     * them look oversized once rotated (more screen width but the same 2 columns).
+     * Use more columns in landscape so each cover art tile shrinks back down.
+     */
+    private int browseColumnCount() {
+        boolean landscape = getResources().getConfiguration().orientation
+                == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+        return landscape ? 4 : 2;
     }
 
     /** Shared by the search-results play button, the clickable lyric line, and the browse grid tile. */
@@ -158,6 +172,8 @@ public class MainActivity extends BaseActivity {
             return;
         }
         boolean powerampInstalled = PowerampHelper.isInstalled(this);
+        DebugLog.d(this, "Play", "playSong: " + song.title + " seekSeconds=" + seekSeconds
+                + " powerampInstalled=" + powerampInstalled);
         List<String> options = new ArrayList<>();
         if (powerampInstalled) options.add(getString(R.string.play_in_poweramp_seek));
         options.add(getString(R.string.play_choose_app));
@@ -167,7 +183,10 @@ public class MainActivity extends BaseActivity {
                 .setItems(options.toArray(new String[0]), (dialog, which) -> {
                     boolean pickedPoweramp = powerampInstalled && which == 0;
                     if (pickedPoweramp) {
-                        boolean ok = PowerampHelper.playAt(this, song.audioPath, seekSeconds);
+                        // Only actually seek if the user enabled this in Settings;
+                        // otherwise Poweramp just opens and plays from the start.
+                        int seek = prefs.isPowerampSeekEnabled() ? seekSeconds : -1;
+                        boolean ok = PowerampHelper.playAt(this, song.audioPath, seek);
                         if (!ok) openWithChooser(song.audioPath);
                     } else {
                         openWithChooser(song.audioPath);
@@ -178,12 +197,17 @@ public class MainActivity extends BaseActivity {
 
     private void openWithChooser(String audioPath) {
         try {
-            Uri uri = Uri.fromFile(new java.io.File(audioPath));
+            java.io.File file = new java.io.File(audioPath);
+            Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                    this, getPackageName() + ".fileprovider", file);
             Intent view = new Intent(Intent.ACTION_VIEW);
             view.setDataAndType(uri, "audio/*");
             view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(Intent.createChooser(view, getString(R.string.play_choose_app)));
+            Intent chooser = Intent.createChooser(view, getString(R.string.play_choose_app));
+            chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(chooser);
         } catch (Exception e) {
+            DebugLog.e(this, "Play", "openWithChooser failed for " + audioPath, e);
             Toast.makeText(this, R.string.could_not_open_file, Toast.LENGTH_SHORT).show();
         }
     }
@@ -231,15 +255,6 @@ public class MainActivity extends BaseActivity {
                 .setMessage(notes)
                 .setPositiveButton("Got it", null)
                 .show();
-    }
-
-    private boolean onMenuItemClick(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_history)  { showHistory(); return true; }
-        if (id == R.id.action_reindex)  { reindex();     return true; }
-        if (id == R.id.action_settings) {
-            startActivity(new Intent(this, SettingsActivity.class)); return true; }
-        return false;
     }
 
     private void showHistory() {
@@ -368,7 +383,7 @@ public class MainActivity extends BaseActivity {
         List<LyricsRepository.Song> all = LyricsRepository.getInstance().getAllSongs();
         browseAdapter.submit(all);
         if (!isShowingBrowse) {
-            resultsRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+            resultsRecyclerView.setLayoutManager(new GridLayoutManager(this, browseColumnCount()));
             resultsRecyclerView.setAdapter(browseAdapter);
             isShowingBrowse = true;
         }

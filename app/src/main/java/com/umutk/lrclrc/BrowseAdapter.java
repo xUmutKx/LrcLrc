@@ -43,7 +43,7 @@ public class BrowseAdapter extends RecyclerView.Adapter<BrowseAdapter.VH> {
     public void onBindViewHolder(@NonNull VH h, int position) {
         LyricsRepository.Song song = items.get(position);
         h.title.setText(song.title);
-        h.subtitle.setText(song.folder);
+        h.subtitle.setText((song.artist != null && !song.artist.isEmpty()) ? song.artist : song.folder);
         AlbumArtLoader.getInstance().load(h.itemView.getContext(), song.audioPath, h.art);
         h.itemView.setOnClickListener(v -> listener.onClick(song));
     }

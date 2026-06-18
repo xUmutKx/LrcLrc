@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The app reads music from anywhere under external storage (it has
+         MANAGE_EXTERNAL_STORAGE), so external-path covers any folder the user
+         picks in Settings, not just a fixed Music/ directory. -->
+    <external-path name="external_files" path="." />
+    <root-path name="root" path="." />
+    <!-- The debug log file lives in internal app storage (getFilesDir()), which
+         needs its own files-path entry - external-path/root-path above only
+         cover external storage, not this. Without this, "Share log" would throw
+         IllegalArgumentException when building the content:// URI. -->
+    <files-path name="internal_files" path="." />
+</paths>

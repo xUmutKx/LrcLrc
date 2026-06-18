@@ -19,8 +19,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorSurface"
             app:title="@string/app_name"
-            app:navigationIcon="@drawable/ic_menu"
-            app:menu="@menu/main_menu" />
+            app:navigationIcon="@drawable/ic_menu" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/searchLayout"

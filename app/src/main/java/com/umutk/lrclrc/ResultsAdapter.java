@@ -75,8 +75,9 @@ public class ResultsAdapter extends RecyclerView.Adapter<ResultsAdapter.VH> {
 
     private String buildSubtitle(LyricsRepository.Song song) {
         String hits = song.hits == 1 ? "1 hit" : song.hits + " hits";
-        return (song.folder != null && !song.folder.isEmpty())
-                ? song.folder + "  ·  " + hits : hits;
+        String name = (song.artist != null && !song.artist.isEmpty()) ? song.artist : song.folder;
+        return (name != null && !name.isEmpty())
+                ? name + "  ·  " + hits : hits;
     }
 
     private int firstSeekSeconds(LyricsRepository.Song song) {

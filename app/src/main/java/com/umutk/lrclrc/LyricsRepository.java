@@ -51,6 +51,7 @@ public class LyricsRepository {
             ".mp3", ".flac", ".m4a", ".ogg", ".opus", ".wav", ".aac", ".wma"
     };
     private static final Pattern RE_TAG       = Pattern.compile("^\\s*\\[[a-zA-Z]+:[^\\]]*]\\s*$");
+    private static final Pattern RE_ARTIST_TAG = Pattern.compile("^\\s*\\[ar:([^\\]]*)]\\s*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern RE_TIMESTAMP = Pattern.compile("\\[(\\d{1,3}):(\\d{2})[.:](\\d{2})]");
 
     // ── Index state ──────────────────────────────────────────────────────────
@@ -95,14 +96,14 @@ public class LyricsRepository {
     }
 
     public static class Song implements Serializable {
-        public final String lrcPath, audioPath, title, folder;
+        public final String lrcPath, audioPath, title, folder, artist;
         public final List<LrcLine> lines;
         /** lrc file's lastModified() at the time it was parsed - used to detect changes on disk. */
         public final long lrcModified;
         public transient int hits = 0;
         public transient List<DisplayLine> displayLines = new ArrayList<>();
-        Song(String lp, String ap, String t, String f, List<LrcLine> l, long mtime) {
-            lrcPath = lp; audioPath = ap; title = t; folder = f; lines = l; lrcModified = mtime;
+        Song(String lp, String ap, String t, String f, String artist, List<LrcLine> l, long mtime) {
+            lrcPath = lp; audioPath = ap; title = t; folder = f; this.artist = artist; lines = l; lrcModified = mtime;
         }
     }
 
@@ -117,7 +118,7 @@ public class LyricsRepository {
 
     /** On-disk cache payload: the full song index for one directory. */
     private static class CacheData implements Serializable {
-        private static final long serialVersionUID = 2L;
+        private static final long serialVersionUID = 3L; // bumped: Song gained an 'artist' field
         String dir;
         ArrayList<Song> songs;
     }
@@ -147,6 +148,7 @@ public class LyricsRepository {
     public void reindex(Context ctx, String rootDir, IndexCallback cb) {
         if (indexing.getAndSet(true)) return; // already running
         indexExecutor.execute(() -> {
+            DebugLog.d(ctx, "Index", "reindex() started for dir=" + rootDir);
             boolean cacheHit = false;
             CacheData cached = loadCache(ctx, rootDir);
             if (cached != null && cached.songs != null) {
@@ -156,6 +158,7 @@ public class LyricsRepository {
                 }
                 indexedDir = rootDir;
                 cacheHit = true;
+                DebugLog.d(ctx, "Index", "cache hit: " + cached.songs.size() + " songs loaded from disk cache");
                 cb.onCacheLoaded(cached.songs.size());
             }
 
@@ -168,6 +171,7 @@ public class LyricsRepository {
                     synchronized (this) { liveIndex.clear(); }
                     filesScanned = 0;
                     totalFilesEstimate = Math.max(1, estimateLrcCount(root));
+                    DebugLog.d(ctx, "Index", "no cache - full scan, estimated .lrc files=" + totalFilesEstimate);
                     scanDir(root, cb);
                 } else {
                     // We already have a cached index: only re-parse files that are new or
@@ -180,9 +184,11 @@ public class LyricsRepository {
                 int count;
                 synchronized (this) { count = liveIndex.size(); }
                 saveCache(ctx, rootDir);
+                DebugLog.d(ctx, "Index", "reindex() finished: " + count + " songs indexed");
                 cb.onIndexed(count, rootDir);
             } catch (Exception e) {
                 indexing.set(false);
+                DebugLog.e(ctx, "Index", "reindex() failed", e);
                 cb.onError(e.getMessage() != null ? e.getMessage() : e.toString());
             }
         });
@@ -297,11 +303,18 @@ public class LyricsRepository {
 
     private Song parseLrcFile(File f) {
         List<LrcLine> lines = new ArrayList<>();
+        String artistTag = null;
         try (BufferedReader br = new BufferedReader(
                 new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8))) {
             String raw; int no = 0;
             while ((raw = br.readLine()) != null) {
                 no++;
+                Matcher am = RE_ARTIST_TAG.matcher(raw);
+                if (am.matches()) {
+                    String val = am.group(1).trim();
+                    if (!val.isEmpty() && artistTag == null) artistTag = val;
+                    continue;
+                }
                 if (RE_TAG.matcher(raw).matches()) continue;
                 int seek = -1;
                 Matcher tm = RE_TIMESTAMP.matcher(raw);
@@ -319,7 +332,8 @@ public class LyricsRepository {
         String noExt = dot >= 0 ? base.substring(0, dot) : base;
         String audio  = findAudio(f.getParentFile(), noExt);
         String folder = f.getParentFile() != null ? f.getParentFile().getName() : "";
-        return new Song(f.getAbsolutePath(), audio, noExt, folder, lines, f.lastModified());
+        String artist = (artistTag != null && !artistTag.isEmpty()) ? artistTag : folder;
+        return new Song(f.getAbsolutePath(), audio, noExt, folder, artist, lines, f.lastModified());
     }
 
     private String findAudio(File dir, String base) {
@@ -358,8 +372,37 @@ public class LyricsRepository {
     }
 
     /**
+     * Splits a query into search terms. A quoted segment ("like this") is kept as a
+     * single multi-word term (old "exact phrase" behaviour); anything outside quotes
+     * is split on whitespace into separate terms. Each term is then matched
+     * independently anywhere in the song (see search() below) so e.g. typing
+     * "love rain" finds a song that has "love" in one line and "rain" in a totally
+     * different, far-away line - the terms don't need to be adjacent or close.
+     */
+    private static List<String> splitTerms(String phrase) {
+        List<String> terms = new ArrayList<>();
+        Matcher m = Pattern.compile("\"([^\"]+)\"|(\\S+)").matcher(phrase);
+        while (m.find()) {
+            String quoted = m.group(1);
+            String bare   = m.group(2);
+            String term = quoted != null ? quoted : bare;
+            if (term != null) {
+                term = term.trim();
+                if (!term.isEmpty()) terms.add(term);
+            }
+        }
+        return terms;
+    }
+
+    /**
      * Searches the current (possibly partial) live index without blocking.
      * Callback fires on the search thread — post to UI thread yourself.
+     *
+     * Multi-word queries use AND-across-the-whole-song matching: every term in the
+     * query must appear *somewhere* in the song's lyrics, but the terms don't have to
+     * be on the same line or even nearby - e.g. "love rain" matches a song where
+     * "love" appears in the first verse and "rain" only shows up in the bridge.
+     * Each matched term's own occurrences (with their own context lines) are shown.
      */
     public void search(String phrase, Prefs prefs, SearchCallback cb) {
         searchExecutor.execute(() -> {
@@ -369,40 +412,69 @@ public class LyricsRepository {
             List<Song> snap;
             synchronized (this) { snap = new ArrayList<>(liveIndex); }
 
+            List<String> rawTerms = splitTerms(phrase);
             List<Song> results    = new ArrayList<>();
             int total = 0, lines  = 0;
             int maxR  = prefs.getMaxResults();
             int ctx   = prefs.getContextLines();
             boolean ci = prefs.isCaseInsensitive();
             boolean ww = prefs.isWholeWord();
-            String needle = ci ? trLower(phrase) : phrase;
+
+            List<String> needles = new ArrayList<>();
+            for (String t : rawTerms) needles.add(ci ? trLower(t) : t);
+
+            if (needles.isEmpty()) {
+                cb.onResults(results, 0, System.currentTimeMillis() - t0);
+                return;
+            }
 
             outer:
             for (Song song : snap) {
-                List<Integer> hitIdxs = new ArrayList<>();
-                for (int i = 0; i < song.lines.size(); i++) {
-                    String hay = ci ? trLower(song.lines.get(i).text) : song.lines.get(i).text;
-                    if (containsMatch(hay, needle, ww)) hitIdxs.add(i);
+                // For each term, collect the line indices where it appears in this song.
+                List<List<Integer>> perTermHits = new ArrayList<>();
+                boolean allTermsFound = true;
+                for (String needle : needles) {
+                    List<Integer> idxs = new ArrayList<>();
+                    for (int i = 0; i < song.lines.size(); i++) {
+                        String hay = ci ? trLower(song.lines.get(i).text) : song.lines.get(i).text;
+                        if (containsMatch(hay, needle, ww)) idxs.add(i);
+                    }
+                    if (idxs.isEmpty()) { allTermsFound = false; break; }
+                    perTermHits.add(idxs);
                 }
-                if (hitIdxs.isEmpty()) continue;
+                // AND semantics: skip the song unless every term was found somewhere in it.
+                if (!allTermsFound) continue;
 
-                Song r = new Song(song.lrcPath, song.audioPath, song.title, song.folder, song.lines, song.lrcModified);
-                r.hits = hitIdxs.size();
-                total += r.hits;
+                // Map each hit line back to which needle matched it (for highlighting),
+                // and total hit count across all terms.
+                Map<Integer, String> lineToNeedle = new HashMap<>();
+                int hitCount = 0;
+                for (int t = 0; t < needles.size(); t++) {
+                    for (int idx : perTermHits.get(t)) {
+                        lineToNeedle.putIfAbsent(idx, needles.get(t));
+                        hitCount++;
+                    }
+                }
 
+                Song r = new Song(song.lrcPath, song.audioPath, song.title, song.folder, song.artist, song.lines, song.lrcModified);
+                r.hits = hitCount;
+                total += hitCount;
+
+                Set<Integer> hitIdxs = lineToNeedle.keySet();
                 Set<Integer> incl = new TreeSet<>();
                 for (int idx : hitIdxs)
                     for (int k = Math.max(0, idx - ctx); k <= Math.min(song.lines.size()-1, idx + ctx); k++)
                         incl.add(k);
 
-                Set<Integer> mset = new HashSet<>(hitIdxs);
                 for (int idx : incl) {
                     LrcLine line = song.lines.get(idx);
-                    boolean isMat = mset.contains(idx);
+                    boolean isMat = hitIdxs.contains(idx);
                     int ms = -1, ml = 0;
                     if (isMat) {
+                        String needle = lineToNeedle.get(idx);
                         String hay = ci ? trLower(line.text) : line.text;
-                        ms = hay.indexOf(needle); ml = phrase.length();
+                        ms = hay.indexOf(needle);
+                        ml = needle.length();
                     }
                     r.displayLines.add(new DisplayLine(line, isMat, ms, ml));
                     lines++;

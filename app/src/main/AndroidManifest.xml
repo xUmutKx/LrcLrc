@@ -29,5 +29,19 @@
         <activity android:name=".SettingsActivity" android:exported="false"
             android:label="@string/settings_title" />
 
+        <!-- Needed to hand audio files to Poweramp/other players as content:// URIs.
+             Sharing file:// URIs with another app crashes on modern Android
+             (FileUriExposedException) - this is what made "Choose another app"
+             and the Poweramp broadcast silently fail to actually play anything. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 </manifest>

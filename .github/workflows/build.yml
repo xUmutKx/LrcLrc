@@ -5,7 +5,7 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:   # elle de tetikleyebilirsin
+  workflow_dispatch:   # elle de tetikleyebilirsin (gh workflow run veya GitHub arayüzünden)
 
 jobs:
   build:
@@ -20,13 +20,18 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
 
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      # NOT: bu projede gradlew gerçek bir Gradle wrapper değil (gradle-wrapper.jar yok,
+      # gradlew sadece "exec gradle" diyen bir shim). Bu yüzden ./gradlew yerine
+      # setup-gradle action'ı ile runner'a gerçek Gradle kuruluyor ve doğrudan
+      # "gradle" komutu çağrılıyor - Termux'ta da aynı şekilde sistem gradle'ı kullanılıyor.
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

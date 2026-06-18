@@ -13,5 +13,5 @@
     <color name="context_text_light">#79747E</color>
     <color name="context_text_dark">#938F99</color>
 
-    <color name="ic_launcher_background">#1A1040</color>
+    <color name="ic_launcher_background">#000000</color>
 </resources>

@@ -42,6 +42,18 @@
     <string name="settings_amoled">AMOLED pure black</string>
     <string name="settings_amoled_desc">True black backgrounds in dark mode</string>
 
+    <string name="settings_poweramp">Poweramp</string>
+    <string name="settings_poweramp_seek">Jump to line in Poweramp</string>
+    <string name="settings_poweramp_seek_desc">When you pick Poweramp in the play dialog, jump straight to the matched lyric\'s timestamp instead of just opening the track</string>
+
+    <string name="settings_debug_logging">Debug logging</string>
+    <string name="settings_debug_logging_desc">Keep a log file on device to help diagnose problems (scanning, Poweramp, album art)</string>
+    <string name="settings_share_log">Share log</string>
+    <string name="settings_clear_log">Clear log</string>
+    <string name="debug_logging_enabled">Debug logging enabled</string>
+    <string name="debug_logging_disabled">Debug logging disabled</string>
+    <string name="no_log_yet">No log file yet — nothing has been recorded.</string>
+
     <string name="history_title">Search history</string>
     <string name="history_empty">No searches yet.</string>
     <string name="clear_history">Clear history</string>
