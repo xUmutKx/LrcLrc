@@ -1,17 +1,27 @@
 package com.lrcfinder.app;
 
+import android.content.Context;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
@@ -62,7 +72,9 @@ public class LyricsRepository {
     // ── Public interfaces ────────────────────────────────────────────────────
 
     public interface IndexCallback {
-        /** Called on the index thread, periodically during scan. */
+        /** Fired immediately if a saved index was found on disk, before any rescan happens. */
+        void onCacheLoaded(int songCount);
+        /** Called on the index thread, periodically during a full/incremental scan. */
         void onProgress(int scanned, int total, int songsFound);
         /** Called when indexing is fully complete. */
         void onIndexed(int songCount, String dir);
@@ -75,20 +87,22 @@ public class LyricsRepository {
 
     // ── Data classes ─────────────────────────────────────────────────────────
 
-    public static class LrcLine {
+    public static class LrcLine implements Serializable {
         public final int lineNumber;
         public final String text;
         public final int seekSeconds;
         LrcLine(int n, String t, int s) { lineNumber = n; text = t; seekSeconds = s; }
     }
 
-    public static class Song {
+    public static class Song implements Serializable {
         public final String lrcPath, audioPath, title, folder;
         public final List<LrcLine> lines;
-        public int hits = 0;
-        public List<DisplayLine> displayLines = new ArrayList<>();
-        Song(String lp, String ap, String t, String f, List<LrcLine> l) {
-            lrcPath = lp; audioPath = ap; title = t; folder = f; lines = l;
+        /** lrc file's lastModified() at the time it was parsed - used to detect changes on disk. */
+        public final long lrcModified;
+        public transient int hits = 0;
+        public transient List<DisplayLine> displayLines = new ArrayList<>();
+        Song(String lp, String ap, String t, String f, List<LrcLine> l, long mtime) {
+            lrcPath = lp; audioPath = ap; title = t; folder = f; lines = l; lrcModified = mtime;
         }
     }
 
@@ -99,6 +113,13 @@ public class LyricsRepository {
         DisplayLine(LrcLine l, boolean m, int ms, int ml) {
             line = l; isMatch = m; matchStart = ms; matchLen = ml;
         }
+    }
+
+    /** On-disk cache payload: the full song index for one directory. */
+    private static class CacheData implements Serializable {
+        private static final long serialVersionUID = 2L;
+        String dir;
+        ArrayList<Song> songs;
     }
 
     private LyricsRepository() {}
@@ -121,33 +142,122 @@ public class LyricsRepository {
 
     // ── Indexing ─────────────────────────────────────────────────────────────
 
-    public void reindex(String rootDir, IndexCallback cb) {
+    private static final String CACHE_FILE = "lrcfinder_index_cache.ser";
+
+    public void reindex(Context ctx, String rootDir, IndexCallback cb) {
         if (indexing.getAndSet(true)) return; // already running
         indexExecutor.execute(() -> {
-            synchronized (this) {
-                liveIndex.clear();
-                filesScanned = 0;
-                totalFilesEstimate = 0;
+            boolean cacheHit = false;
+            CacheData cached = loadCache(ctx, rootDir);
+            if (cached != null && cached.songs != null) {
+                synchronized (this) {
+                    liveIndex.clear();
+                    liveIndex.addAll(cached.songs);
+                }
+                indexedDir = rootDir;
+                cacheHit = true;
+                cb.onCacheLoaded(cached.songs.size());
             }
+
             try {
                 File root = new File(rootDir);
                 if (!root.isDirectory()) throw new IOException("Not a directory: " + rootDir);
 
-                // Quick count for progress denominator (fast pass, dirs only)
-                totalFilesEstimate = Math.max(1, estimateLrcCount(root));
-
-                scanDir(root, cb);
+                if (!cacheHit) {
+                    // First time we've ever indexed this folder: full slow parse of every file.
+                    synchronized (this) { liveIndex.clear(); }
+                    filesScanned = 0;
+                    totalFilesEstimate = Math.max(1, estimateLrcCount(root));
+                    scanDir(root, cb);
+                } else {
+                    // We already have a cached index: only re-parse files that are new or
+                    // whose mtime changed, and drop ones that were deleted. Much faster.
+                    incrementalScan(root, cb);
+                }
 
                 indexedDir = rootDir;
                 indexing.set(false);
                 int count;
                 synchronized (this) { count = liveIndex.size(); }
+                saveCache(ctx, rootDir);
                 cb.onIndexed(count, rootDir);
             } catch (Exception e) {
                 indexing.set(false);
                 cb.onError(e.getMessage() != null ? e.getMessage() : e.toString());
             }
         });
+    }
+
+    private void incrementalScan(File root, IndexCallback cb) {
+        Map<String, Song> existingByPath = new HashMap<>();
+        synchronized (this) {
+            for (Song s : liveIndex) existingByPath.put(s.lrcPath, s);
+        }
+        List<Song> rebuilt = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        filesScanned = 0;
+        totalFilesEstimate = Math.max(1, existingByPath.size());
+        incrementalScanDir(root, existingByPath, rebuilt, seen, cb);
+        synchronized (this) {
+            liveIndex.clear();
+            liveIndex.addAll(rebuilt);
+        }
+    }
+
+    private void incrementalScanDir(File dir, Map<String, Song> existingByPath,
+                                     List<Song> rebuilt, Set<String> seen, IndexCallback cb) {
+        File[] children = dir.listFiles();
+        if (children == null) return;
+        for (File f : children) {
+            if (f.isDirectory()) {
+                if (!f.getName().startsWith(".")) incrementalScanDir(f, existingByPath, rebuilt, seen, cb);
+            } else if (f.getName().toLowerCase(Locale.ROOT).endsWith(".lrc")) {
+                String path = f.getAbsolutePath();
+                seen.add(path);
+                Song old = existingByPath.get(path);
+                Song s = (old != null && old.lrcModified == f.lastModified())
+                        ? old              // unchanged - reuse cached entry, skip re-parsing
+                        : parseLrcFile(f); // new or modified - parse fresh
+                if (s != null) rebuilt.add(s);
+                filesScanned++;
+                if (filesScanned % 50 == 0) {
+                    cb.onProgress(filesScanned, totalFilesEstimate, rebuilt.size());
+                }
+            }
+        }
+    }
+
+    private CacheData loadCache(Context ctx, String dir) {
+        File f = new File(ctx.getFilesDir(), CACHE_FILE);
+        if (!f.exists()) return null;
+        try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(new FileInputStream(f)))) {
+            Object obj = in.readObject();
+            if (obj instanceof CacheData) {
+                CacheData data = (CacheData) obj;
+                if (dir.equals(data.dir)) return data;
+            }
+        } catch (Exception ignored) {
+            // Corrupt or incompatible cache (e.g. after an app update) - just fall back to a full scan.
+        }
+        return null;
+    }
+
+    private void saveCache(Context ctx, String dir) {
+        List<Song> snap;
+        synchronized (this) { snap = new ArrayList<>(liveIndex); }
+        CacheData data = new CacheData();
+        data.dir = dir;
+        data.songs = new ArrayList<>(snap);
+        File f = new File(ctx.getFilesDir(), CACHE_FILE);
+        try (ObjectOutputStream out = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(f)))) {
+            out.writeObject(data);
+        } catch (Exception ignored) {
+            // Non-fatal: worst case, next launch just does a full rescan again.
+        }
+    }
+
+    public void clearCache(Context ctx) {
+        new File(ctx.getFilesDir(), CACHE_FILE).delete();
     }
 
     private int estimateLrcCount(File dir) {
@@ -209,7 +319,7 @@ public class LyricsRepository {
         String noExt = dot >= 0 ? base.substring(0, dot) : base;
         String audio  = findAudio(f.getParentFile(), noExt);
         String folder = f.getParentFile() != null ? f.getParentFile().getName() : "";
-        return new Song(f.getAbsolutePath(), audio, noExt, folder, lines);
+        return new Song(f.getAbsolutePath(), audio, noExt, folder, lines, f.lastModified());
     }
 
     private String findAudio(File dir, String base) {
@@ -276,7 +386,7 @@ public class LyricsRepository {
                 }
                 if (hitIdxs.isEmpty()) continue;
 
-                Song r = new Song(song.lrcPath, song.audioPath, song.title, song.folder, song.lines);
+                Song r = new Song(song.lrcPath, song.audioPath, song.title, song.folder, song.lines, song.lrcModified);
                 r.hits = hitIdxs.size();
                 total += r.hits;
 

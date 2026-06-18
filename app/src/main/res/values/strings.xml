@@ -8,7 +8,13 @@
     <string name="action_reindex">Re-index library</string>
 
     <string name="status_indexing">Scanning lyrics files…</string>
+    <string name="status_indexing_first_time">Indexing your library for the first time — this is a one-time scan and can take a while</string>
+    <string name="status_checking_updates">checking for new songs…</string>
     <string name="status_indexed">%1$d songs · %2$s</string>
+    <string name="play_dialog_title">Open with</string>
+    <string name="play_in_poweramp_seek">Poweramp (jump to this line)</string>
+    <string name="play_choose_app">Choose another app…</string>
+    <string name="could_not_open_file">Couldn\'t open this file</string>
     <string name="status_no_results">No matches found.</string>
     <string name="status_results">%1$d match(es) in %2$d song(s) · %3$dms</string>
     <string name="status_need_permission">LrcLrc needs storage access to read your lyrics files.</string>

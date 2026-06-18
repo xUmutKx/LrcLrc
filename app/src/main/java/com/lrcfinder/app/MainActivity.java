@@ -23,6 +23,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -143,19 +144,48 @@ public class MainActivity extends BaseActivity {
     }
 
     private void setupAdapters() {
-        resultsAdapter = new ResultsAdapter(this, (song, seekSeconds) -> {
-            if (song.audioPath == null) {
-                Toast.makeText(this, R.string.audio_file_missing, Toast.LENGTH_SHORT).show();
-                return;
-            }
-            PowerampHelper.playAt(this, song.audioPath, seekSeconds);
-        });
-        browseAdapter = new BrowseAdapter(song -> {
-            if (song.audioPath != null) PowerampHelper.playAt(this, song.audioPath, -1);
-        });
-        resultsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        resultsAdapter = new ResultsAdapter(this, (song, seekSeconds) -> playSong(song, seekSeconds));
+        browseAdapter = new BrowseAdapter(song -> playSong(song, -1));
+        resultsRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
         resultsRecyclerView.setAdapter(browseAdapter);
         isShowingBrowse = true;
+    }
+
+    /** Shared by the search-results play button, the clickable lyric line, and the browse grid tile. */
+    private void playSong(LyricsRepository.Song song, int seekSeconds) {
+        if (song.audioPath == null) {
+            Toast.makeText(this, R.string.audio_file_missing, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        boolean powerampInstalled = PowerampHelper.isInstalled(this);
+        List<String> options = new ArrayList<>();
+        if (powerampInstalled) options.add(getString(R.string.play_in_poweramp_seek));
+        options.add(getString(R.string.play_choose_app));
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.play_dialog_title)
+                .setItems(options.toArray(new String[0]), (dialog, which) -> {
+                    boolean pickedPoweramp = powerampInstalled && which == 0;
+                    if (pickedPoweramp) {
+                        boolean ok = PowerampHelper.playAt(this, song.audioPath, seekSeconds);
+                        if (!ok) openWithChooser(song.audioPath);
+                    } else {
+                        openWithChooser(song.audioPath);
+                    }
+                })
+                .show();
+    }
+
+    private void openWithChooser(String audioPath) {
+        try {
+            Uri uri = Uri.fromFile(new java.io.File(audioPath));
+            Intent view = new Intent(Intent.ACTION_VIEW);
+            view.setDataAndType(uri, "audio/*");
+            view.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(view, getString(R.string.play_choose_app)));
+        } catch (Exception e) {
+            Toast.makeText(this, R.string.could_not_open_file, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void setupSearch() {
@@ -271,25 +301,36 @@ public class MainActivity extends BaseActivity {
 
     // ── Indexing ──────────────────────────────────────────────────────────────
 
+    private boolean cacheHitThisRun = false;
+
     private void reindex() {
-        indexingOverlay.setVisibility(View.VISIBLE);
+        cacheHitThisRun = false;
         swipeRefresh.setRefreshing(false);
-        statusText.setText(R.string.status_indexing);
         AlbumArtLoader.getInstance().clearCache();
 
-        LyricsRepository.getInstance().reindex(prefs.getSearchDir(),
+        LyricsRepository.getInstance().reindex(this, prefs.getSearchDir(),
             new LyricsRepository.IndexCallback() {
+
+                @Override public void onCacheLoaded(int songCount) {
+                    runOnUiThread(() -> {
+                        cacheHitThisRun = true;
+                        indexingOverlay.setVisibility(View.GONE);
+                        statusText.setText(getString(R.string.status_indexed, songCount, prefs.getSearchDir())
+                                + "  ·  " + getString(R.string.status_checking_updates));
+                        if (isShowingBrowse) refreshBrowseList();
+                    });
+                }
 
                 @Override public void onProgress(int scanned, int total, int songsFound) {
                     runOnUiThread(() -> {
-                        int pct = total > 0 ? (scanned * 100 / total) : 0;
-                        indexingLabel.setText(getString(R.string.status_indexing)
-                                + "  " + pct + "%  (" + songsFound + " songs)");
-                        // Start showing browse list while still indexing
+                        if (!cacheHitThisRun) {
+                            indexingOverlay.setVisibility(View.VISIBLE);
+                            int pct = total > 0 ? (scanned * 100 / total) : 0;
+                            indexingLabel.setText(getString(R.string.status_indexing_first_time)
+                                    + "  " + pct + "%  (" + songsFound + " songs)");
+                        }
                         if (isShowingBrowse) refreshBrowseList();
-                        // Start debounced search with current query if there is one
-                        String q = searchEditText.getText() != null
-                                ? searchEditText.getText().toString().trim() : "";
+                        String q = currentQuery();
                         if (!q.isEmpty()) scheduleSearch(q);
                     });
                 }
@@ -300,8 +341,7 @@ public class MainActivity extends BaseActivity {
                         swipeRefresh.setRefreshing(false);
                         statusText.setText(getString(R.string.status_indexed, count, dir));
                         handler.removeCallbacks(browseRefresher);
-                        String q = searchEditText.getText() != null
-                                ? searchEditText.getText().toString().trim() : "";
+                        String q = currentQuery();
                         if (q.isEmpty()) refreshBrowseList();
                         else performSearch(q);
                     });
@@ -316,14 +356,19 @@ public class MainActivity extends BaseActivity {
                 }
             });
 
-        // Kick off periodic browse refresh while indexing
+        // Kick off periodic browse refresh while a full first-time scan is running
         handler.postDelayed(browseRefresher, 1500);
+    }
+
+    private String currentQuery() {
+        return searchEditText.getText() != null ? searchEditText.getText().toString().trim() : "";
     }
 
     private void refreshBrowseList() {
         List<LyricsRepository.Song> all = LyricsRepository.getInstance().getAllSongs();
         browseAdapter.submit(all);
         if (!isShowingBrowse) {
+            resultsRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
             resultsRecyclerView.setAdapter(browseAdapter);
             isShowingBrowse = true;
         }
@@ -349,6 +394,7 @@ public class MainActivity extends BaseActivity {
         if (query.isEmpty()) { refreshBrowseList(); return; }
 
         if (isShowingBrowse) {
+            resultsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
             resultsRecyclerView.setAdapter(resultsAdapter);
             isShowingBrowse = false;
         }
