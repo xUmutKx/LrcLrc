@@ -82,4 +82,27 @@ public final class PowerampHelper {
             return false;
         }
     }
+
+    /**
+     * Open the audio file with Android's built-in chooser (fallback when
+     * Poweramp is not installed or the broadcast fails).
+     */
+    public static void playWithChooser(android.content.Context ctx, String audioFilePath) {
+        if (audioFilePath == null) return;
+        try {
+            java.io.File f = new java.io.File(audioFilePath);
+            android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                    ctx, ctx.getPackageName() + ".fileprovider", f);
+            android.content.Intent intent = new android.content.Intent(
+                    android.content.Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "audio/*");
+            intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            ctx.startActivity(android.content.Intent.createChooser(intent,
+                    ctx.getString(R.string.play_in_poweramp)));
+        } catch (Exception e) {
+            android.widget.Toast.makeText(ctx, e.getMessage(),
+                    android.widget.Toast.LENGTH_SHORT).show();
+        }
+    }
+
 }

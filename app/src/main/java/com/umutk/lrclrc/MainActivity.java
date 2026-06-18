@@ -340,7 +340,7 @@ public class MainActivity extends BaseActivity {
                     runOnUiThread(() -> {
                         if (!cacheHitThisRun) {
                             indexingOverlay.setVisibility(View.VISIBLE);
-                            int pct = total > 0 ? (scanned * 100 / total) : 0;
+                            int pct = total > 0 ? Math.min(100, scanned * 100 / total) : 0;
                             indexingLabel.setText(getString(R.string.status_indexing_first_time)
                                     + "  " + pct + "%  (" + songsFound + " songs)");
                         }

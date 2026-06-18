@@ -4,25 +4,40 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <!--
-        Simple key icon, replacing the old music-note + "triangle flag" mark.
-        Drawn entirely inside the adaptive-icon safe zone (the centered 66x66
-        area, i.e. roughly x:21-87 / y:21-87) so it isn't cropped on any
-        launcher mask shape (circle, squircle, rounded square, etc).
-        Bow (the round part you hold) + shaft + two teeth at the tip.
-    -->
-
-    <!-- Bow: a ring, drawn as a thick circular stroke -->
+    <!-- Treble clef / Sol anahtari - white on black background -->
+    <!-- Main stem -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#C9BBFF"
-        android:strokeWidth="7"
-        android:pathData="M30,40 A12,12 0 1,0 30.01,40"/>
-
-    <!-- Shaft -->
+        android:fillColor="#FFFFFF"
+        android:pathData="
+        M54,12
+        C54,12 46,22 46,36
+        C46,46 52,52 52,52
+        C40,58 34,66 34,76
+        C34,88 43,96 54,96
+        C65,96 74,88 74,78
+        C74,68 67,62 58,60
+        L58,40
+        C64,38 70,32 70,24
+        C70,16 63,10 54,12 Z
+        M54,18
+        C59,17 64,20 64,26
+        C64,32 60,36 56,38
+        L56,20
+        C55.3,19 54.7,18.3 54,18 Z
+        M54,56
+        C62,58 68,64 68,74
+        C68,84 62,90 54,90
+        C46,90 40,84 40,76
+        C40,68 46,62 54,60
+        L54,56 Z
+        M52,56
+        L52,88
+        C47,86 44,81 44,76
+        C44,70 47,65 52,62
+        L52,56 Z" />
+    <!-- Ledger line hint at bottom -->
     <path
-        android:fillColor="#C9BBFF"
-        android:pathData="M38,40 L78,40 L78,47 L71,47 L71,54 L64,54 L64,47 L52,47 L52,40 Z"/>
-
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.5"
+        android:pathData="M42,98 L66,98 L66,100 L42,100 Z" />
 </vector>
