@@ -34,6 +34,8 @@ public class ResultsAdapter extends RecyclerView.Adapter<ResultsAdapter.VH> {
     private final int highlightBg;
     private final int highlightFg;
     private final int contextColor;
+    /** Highlight colors for the 2nd, 3rd... comma-separated part (part 1 uses match_highlight). */
+    private static final int[] PART_COLORS = {0xFFD84315, 0xFF00796B, 0xFFAD1457, 0xFF1565C0, 0xFF6A1B9A};
 
     public ResultsAdapter(Context ctx, OnLineClick listener) {
         this.listener = listener;
@@ -96,11 +98,13 @@ public class ResultsAdapter extends RecyclerView.Adapter<ResultsAdapter.VH> {
             int end = sb.length();
 
             if (dl.isMatch) {
-                if (dl.matchStart >= 0) {
-                    int hs = start + dl.matchStart;
-                    int he = Math.min(end, hs + dl.matchLen);
+                int[] r = dl.ranges;
+                for (int k = 0; k + 2 < r.length; k += 3) {
+                    int hs = start + r[k];
+                    int he = Math.min(end, hs + r[k + 1]);
                     if (hs < he) {
-                        sb.setSpan(new BackgroundColorSpan(highlightBg), hs, he, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        int bg = r[k + 2] == 0 ? highlightBg : PART_COLORS[(r[k + 2] - 1) % PART_COLORS.length];
+                        sb.setSpan(new BackgroundColorSpan(bg), hs, he, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         sb.setSpan(new ForegroundColorSpan(highlightFg), hs, he, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         sb.setSpan(new StyleSpan(Typeface.BOLD), hs, he, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                     }

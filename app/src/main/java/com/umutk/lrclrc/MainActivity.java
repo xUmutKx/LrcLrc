@@ -41,7 +41,7 @@ public class MainActivity extends BaseActivity {
 
     private static final int    REQ_LEGACY_STORAGE = 1001;
     private static final long   SEARCH_DEBOUNCE_MS = 250;
-    private static final String CURRENT_VERSION    = "2.0";
+    private static final String CURRENT_VERSION    = "2.1";
 
     private DrawerLayout drawerLayout;
     private TextInputEditText searchEditText;
@@ -135,6 +135,7 @@ public class MainActivity extends BaseActivity {
                 searchEditText.requestFocus();
                 return true;
             }
+            if (id == R.id.nav_help)     { showSearchHelp(); return true; }
             if (id == R.id.nav_history)  { showHistory();  return true; }
             if (id == R.id.nav_reindex)  { reindex();      return true; }
             if (id == R.id.nav_settings) {
@@ -192,7 +193,19 @@ public class MainActivity extends BaseActivity {
         }
     }
 
+    private void showSearchHelp() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.help_title)
+                .setMessage(R.string.help_message)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+    }
+
     private void setupSearch() {
+        com.google.android.material.textfield.TextInputLayout sl = findViewById(R.id.searchLayout);
+        sl.setHelperText(getString(R.string.hint_search_rules));
+        sl.setHelperTextEnabled(true);
+        statusText.setOnClickListener(v -> showSearchHelp());
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void onTextChanged(CharSequence s, int a, int b, int c) {
@@ -219,7 +232,13 @@ public class MainActivity extends BaseActivity {
         prefs.setLastSeenVersion(CURRENT_VERSION);
 
         String notes =
-            "v2.0  —  What's new\n\n" +
+            "v2.1  —  What's new\n\n" +
+            "• Phrase search: plain words = consecutive words (\"seni seviyorum\"), even across line breaks\n" +
+            "• Comma = AND: \"aşk, yağmur\" finds songs containing both anywhere in the lyrics\n" +
+            "• Words shorter than 3 letters are ignored (live hint while typing)\n" +
+            "• Matched parts highlighted in different colors\n" +
+            "• Tap the search box help (?) for the rules\n\n" +
+            "v2.0\n" +
             "• Streaming index: search while library is still loading\n" +
             "• Browse list: all songs with album art shown before search\n" +
             "• Navigation drawer (hamburger menu)\n" +
@@ -383,7 +402,13 @@ public class MainActivity extends BaseActivity {
         if (query.isEmpty()) {
             refreshBrowseList();
             statusText.setText(LyricsRepository.getInstance().isIndexing()
-                    ? getString(R.string.status_indexing) : "");
+                    ? getString(R.string.status_indexing) : getString(R.string.hint_search_rules));
+            return;
+        }
+        SearchLogic.Query pq = SearchLogic.parse(query, prefs.isCaseInsensitive());
+        if (pq.isEmpty()) {
+            // Nothing searchable yet (e.g. only 1-2 letter words): show a hint instead of searching.
+            statusText.setText(R.string.hint_min_letters);
             return;
         }
         pendingSearch = () -> performSearch(query);
@@ -392,6 +417,10 @@ public class MainActivity extends BaseActivity {
 
     private void performSearch(String query) {
         if (query.isEmpty()) { refreshBrowseList(); return; }
+        final SearchLogic.Query pq = SearchLogic.parse(query, prefs.isCaseInsensitive());
+        if (pq.isEmpty()) { statusText.setText(R.string.hint_min_letters); return; }
+        final String ignoredNote = pq.ignored.isEmpty() ? ""
+                : "  ·  " + getString(R.string.hint_ignored, android.text.TextUtils.join(", ", pq.ignored));
 
         if (isShowingBrowse) {
             resultsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -405,12 +434,12 @@ public class MainActivity extends BaseActivity {
                 if (results.isEmpty()) {
                     String suffix = LyricsRepository.getInstance().isIndexing()
                             ? " (still indexing…)" : "";
-                    statusText.setText(getString(R.string.status_no_results) + suffix);
+                    statusText.setText(getString(R.string.status_no_results) + suffix + ignoredNote);
                     emptyStateText.setText(R.string.status_no_results);
                     emptyStateText.setVisibility(View.VISIBLE);
                 } else {
                     statusText.setText(getString(R.string.status_results,
-                            totalMatches, results.size(), elapsed));
+                            totalMatches, results.size(), elapsed) + ignoredNote);
                     emptyStateText.setVisibility(View.GONE);
                 }
             }));

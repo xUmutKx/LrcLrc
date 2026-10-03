@@ -102,6 +102,18 @@ public class LyricsRepository {
         public final long lrcModified;
         public transient int hits = 0;
         public transient List<DisplayLine> displayLines = new ArrayList<>();
+        /** Cached normalized lyrics (see SearchLogic); built lazily, never serialized. */
+        transient volatile SearchLogic.Index idxCi, idxCs;
+        SearchLogic.Index index(boolean ci) {
+            SearchLogic.Index x = ci ? idxCi : idxCs;
+            if (x == null) {
+                List<String> texts = new ArrayList<>(lines.size());
+                for (LrcLine l : lines) texts.add(l.text);
+                x = SearchLogic.buildIndex(texts, ci);
+                if (ci) idxCi = x; else idxCs = x;
+            }
+            return x;
+        }
         Song(String lp, String ap, String t, String f, String artist, List<LrcLine> l, long mtime) {
             lrcPath = lp; audioPath = ap; title = t; folder = f; this.artist = artist; lines = l; lrcModified = mtime;
         }
@@ -111,8 +123,12 @@ public class LyricsRepository {
         public final LrcLine line;
         public final boolean isMatch;
         public final int matchStart, matchLen;
-        DisplayLine(LrcLine l, boolean m, int ms, int ml) {
-            line = l; isMatch = m; matchStart = ms; matchLen = ml;
+        /** Highlight ranges in the raw line text as triples {start, length, partIndex}. */
+        public final int[] ranges;
+        DisplayLine(LrcLine l, boolean m, int[] ranges) {
+            line = l; isMatch = m; this.ranges = ranges;
+            matchStart = ranges.length >= 3 ? ranges[0] : -1;
+            matchLen   = ranges.length >= 3 ? ranges[1] : 0;
         }
     }
 
@@ -360,99 +376,57 @@ public class LyricsRepository {
     // ── Search ────────────────────────────────────────────────────────────────
 
     /** Turkish-aware lowercase: I→ı  İ→i */
-    public static String trLower(String s) {
-        StringBuilder sb = new StringBuilder(s.length());
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if      (c == 'I') sb.append('ı');
-            else if (c == 'İ') sb.append('i');
-            else sb.append(c);
-        }
-        return sb.toString().toLowerCase(Locale.ROOT);
-    }
-
-    /**
-     * Splits a query into search terms. A quoted segment ("like this") is kept as a
-     * single multi-word term (old "exact phrase" behaviour); anything outside quotes
-     * is split on whitespace into separate terms. Each term is then matched
-     * independently anywhere in the song (see search() below) so e.g. typing
-     * "love rain" finds a song that has "love" in one line and "rain" in a totally
-     * different, far-away line - the terms don't need to be adjacent or close.
-     */
-    private static List<String> splitTerms(String phrase) {
-        List<String> terms = new ArrayList<>();
-        Matcher m = Pattern.compile("\"([^\"]+)\"|(\\S+)").matcher(phrase);
-        while (m.find()) {
-            String quoted = m.group(1);
-            String bare   = m.group(2);
-            String term = quoted != null ? quoted : bare;
-            if (term != null) {
-                term = term.trim();
-                if (!term.isEmpty()) terms.add(term);
-            }
-        }
-        return terms;
-    }
+    public static String trLower(String s) { return SearchLogic.trLower(s); }
 
     /**
      * Searches the current (possibly partial) live index without blocking.
      * Callback fires on the search thread — post to UI thread yourself.
      *
-     * Multi-word queries use AND-across-the-whole-song matching: every term in the
-     * query must appear *somewhere* in the song's lyrics, but the terms don't have to
-     * be on the same line or even nearby - e.g. "love rain" matches a song where
-     * "love" appears in the first verse and "rain" only shows up in the bridge.
-     * Each matched term's own occurrences (with their own context lines) are shown.
+     * Rules (see SearchLogic): plain text = one phrase (words in a row, may span lines);
+     * comma separated parts must ALL occur somewhere in the song's lyrics.
      */
     public void search(String phrase, Prefs prefs, SearchCallback cb) {
         searchExecutor.execute(() -> {
             long t0 = System.currentTimeMillis();
 
-            // Snapshot the live index atomically
             List<Song> snap;
             synchronized (this) { snap = new ArrayList<>(liveIndex); }
 
-            List<String> rawTerms = splitTerms(phrase);
-            List<Song> results    = new ArrayList<>();
-            int total = 0, lines  = 0;
-            int maxR  = prefs.getMaxResults();
-            int ctx   = prefs.getContextLines();
             boolean ci = prefs.isCaseInsensitive();
             boolean ww = prefs.isWholeWord();
+            int maxR   = prefs.getMaxResults();
+            int ctx    = prefs.getContextLines();
+            SearchLogic.Query q = SearchLogic.parse(phrase, ci);
 
-            List<String> needles = new ArrayList<>();
-            for (String t : rawTerms) needles.add(ci ? trLower(t) : t);
-
-            if (needles.isEmpty()) {
+            List<Song> results = new ArrayList<>();
+            int total = 0, lines = 0;
+            if (q.isEmpty()) {
                 cb.onResults(results, 0, System.currentTimeMillis() - t0);
                 return;
             }
 
             outer:
             for (Song song : snap) {
-                // For each term, collect the line indices where it appears in this song.
-                List<List<Integer>> perTermHits = new ArrayList<>();
-                boolean allTermsFound = true;
-                for (String needle : needles) {
-                    List<Integer> idxs = new ArrayList<>();
-                    for (int i = 0; i < song.lines.size(); i++) {
-                        String hay = ci ? trLower(song.lines.get(i).text) : song.lines.get(i).text;
-                        if (containsMatch(hay, needle, ww)) idxs.add(i);
-                    }
-                    if (idxs.isEmpty()) { allTermsFound = false; break; }
-                    perTermHits.add(idxs);
+                SearchLogic.Index idx = song.index(ci);
+                boolean all = true;
+                for (String part : q.parts) {
+                    if (!SearchLogic.contains(idx, part, ww)) { all = false; break; }
                 }
-                // AND semantics: skip the song unless every term was found somewhere in it.
-                if (!allTermsFound) continue;
+                if (!all) continue;
 
-                // Map each hit line back to which needle matched it (for highlighting),
-                // and total hit count across all terms.
-                Map<Integer, String> lineToNeedle = new HashMap<>();
+                // line index -> list of highlight triples {start,len,part}
+                java.util.TreeMap<Integer, List<int[]>> hitLines = new java.util.TreeMap<>();
                 int hitCount = 0;
-                for (int t = 0; t < needles.size(); t++) {
-                    for (int idx : perTermHits.get(t)) {
-                        lineToNeedle.putIfAbsent(idx, needles.get(t));
+                for (int p = 0; p < q.parts.size(); p++) {
+                    for (int[] occ : SearchLogic.find(idx, q.parts.get(p), ww)) {
                         hitCount++;
+                        for (int[] seg : SearchLogic.segmentsFor(idx, occ[0], occ[1])) {
+                            int lineNo = idx.segLine[seg[0]];
+                            int[] rr = SearchLogic.rawRange(song.lines.get(lineNo).text, ci, seg[1], seg[2]);
+                            List<int[]> l = hitLines.get(lineNo);
+                            if (l == null) { l = new ArrayList<>(); hitLines.put(lineNo, l); }
+                            if (rr != null) l.add(new int[]{rr[0], rr[1], p});
+                        }
                     }
                 }
 
@@ -460,23 +434,19 @@ public class LyricsRepository {
                 r.hits = hitCount;
                 total += hitCount;
 
-                Set<Integer> hitIdxs = lineToNeedle.keySet();
                 Set<Integer> incl = new TreeSet<>();
-                for (int idx : hitIdxs)
-                    for (int k = Math.max(0, idx - ctx); k <= Math.min(song.lines.size()-1, idx + ctx); k++)
+                for (int idxLine : hitLines.keySet())
+                    for (int k = Math.max(0, idxLine - ctx); k <= Math.min(song.lines.size() - 1, idxLine + ctx); k++)
                         incl.add(k);
 
-                for (int idx : incl) {
-                    LrcLine line = song.lines.get(idx);
-                    boolean isMat = hitIdxs.contains(idx);
-                    int ms = -1, ml = 0;
-                    if (isMat) {
-                        String needle = lineToNeedle.get(idx);
-                        String hay = ci ? trLower(line.text) : line.text;
-                        ms = hay.indexOf(needle);
-                        ml = needle.length();
+                for (int i : incl) {
+                    List<int[]> hl = hitLines.get(i);
+                    int[] flat = new int[hl == null ? 0 : hl.size() * 3];
+                    if (hl != null) {
+                        Collections.sort(hl, (x, y) -> Integer.compare(x[0], y[0]));
+                        for (int k = 0; k < hl.size(); k++) System.arraycopy(hl.get(k), 0, flat, k * 3, 3);
                     }
-                    r.displayLines.add(new DisplayLine(line, isMat, ms, ml));
+                    r.displayLines.add(new DisplayLine(song.lines.get(i), hl != null, flat));
                     lines++;
                 }
                 results.add(r);
@@ -486,23 +456,7 @@ public class LyricsRepository {
             if (prefs.isSortByHits()) results.sort((a, b) -> Integer.compare(b.hits, a.hits));
             else results.sort(Comparator.comparing(s -> s.title.toLowerCase(Locale.ROOT)));
 
-            long elapsed = System.currentTimeMillis() - t0;
-            cb.onResults(results, total, elapsed);
+            cb.onResults(results, total, System.currentTimeMillis() - t0);
         });
-    }
-
-    private boolean containsMatch(String hay, String needle, boolean ww) {
-        if (needle.isEmpty()) return false;
-        if (!ww) return hay.contains(needle);
-        int from = 0;
-        while (true) {
-            int idx = hay.indexOf(needle, from);
-            if (idx < 0) return false;
-            boolean l = idx == 0 || !Character.isLetterOrDigit(hay.charAt(idx - 1));
-            int e = idx + needle.length();
-            boolean r = e >= hay.length() || !Character.isLetterOrDigit(hay.charAt(e));
-            if (l && r) return true;
-            from = idx + 1;
-        }
     }
 }

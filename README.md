@@ -26,6 +26,10 @@ app/src/main/java/com/lrcfinder/app/
 | Concurrent search during index | Separate `searchExecutor` pool; never waits for index to finish |
 | Browse list updates live | `browseRefresher` Runnable fires every 1 s while indexing |
 | Turkish CI search | `trLower()`: `I→ı`, `İ→i` before `toLowerCase(Locale.ROOT)` |
+| Phrase search | Plain multi-word query = consecutive words (`SearchLogic`): lyrics normalized (Turkish lower case, non letter/digit -> single space), phrase may span line breaks |
+| Comma = AND | `aşk, yağmur`: each comma part must occur anywhere in the song's lyrics (not necessarily same line); parts may be phrases |
+| 3-letter minimum | Parts without a word of 3+ letters are ignored; live hint shown while typing |
+| Per-part highlighting | Each part gets its own colour; highlight maps back to raw line text (punctuation-safe) |
 | Poweramp play | `ACTION_API_COMMAND` broadcast, `cmd=20`, `data=file://`, `pos=ms` |
 | Album art | `MediaStore.Audio.Media.ALBUM_ID` → `content://media/external/audio/albumart/{id}` |
 | Adaptive icon | `mipmap-anydpi-v26/ic_launcher.xml` with foreground + background layers |
