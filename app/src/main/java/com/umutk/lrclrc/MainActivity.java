@@ -237,7 +237,7 @@ public class MainActivity extends BaseActivity {
             "• Comma = AND: \"aşk, yağmur\" finds songs containing both anywhere in the lyrics\n" +
             "• Words shorter than 3 letters are ignored (live hint while typing)\n" +
             "• Matched parts highlighted in different colors\n" +
-            "• Tap the search box help (?) for the rules\n\n" +
+            "• Rules are in the menu: Arama kuralları\n\n" +
             "v2.0\n" +
             "• Streaming index: search while library is still loading\n" +
             "• Browse list: all songs with album art shown before search\n" +
