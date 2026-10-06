@@ -59,6 +59,8 @@
     <string name="settings_grid_section">Kitaplık görünümü</string>
     <string name="settings_grid_cols_portrait">Sütun (dikey): %d</string>
     <string name="settings_grid_cols_landscape">Sütun (yatay): %d</string>
+    <string name="lyrics_play">Çal</string>
+    <string name="lyrics_close">Kapat</string>
     <string name="nav_search">Ara</string>
     <string name="nav_library">Kitaplık</string>
     <string name="settings_language">Dil</string>

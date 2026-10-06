@@ -22,9 +22,12 @@ public class BrowseAdapter extends RecyclerView.Adapter<BrowseAdapter.VH> {
 
     private final List<LyricsRepository.Song> items = new ArrayList<>();
     private final OnItemClick listener;
+    private final OnItemClick artListener;
 
-    public BrowseAdapter(OnItemClick listener) {
+    /** @param listener tap on the tile (play), @param artListener tap on the cover (show lyrics) */
+    public BrowseAdapter(OnItemClick listener, OnItemClick artListener) {
         this.listener = listener;
+        this.artListener = artListener;
     }
 
     public void submit(List<LyricsRepository.Song> songs) {
@@ -46,6 +49,7 @@ public class BrowseAdapter extends RecyclerView.Adapter<BrowseAdapter.VH> {
         h.subtitle.setText((song.artist != null && !song.artist.isEmpty()) ? song.artist : song.folder);
         AlbumArtLoader.getInstance().load(h.itemView.getContext(), song.audioPath, h.art);
         h.itemView.setOnClickListener(v -> listener.onClick(song));
+        h.art.setOnClickListener(v -> artListener.onClick(song));
     }
 
     @Override public int getItemCount() { return items.size(); }

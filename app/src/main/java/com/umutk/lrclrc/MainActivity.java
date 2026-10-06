@@ -41,7 +41,7 @@ public class MainActivity extends BaseActivity {
 
     private static final int    REQ_LEGACY_STORAGE = 1001;
     private static final long   SEARCH_DEBOUNCE_MS = 250;
-    private static final String CURRENT_VERSION    = "2.3";
+    private static final String CURRENT_VERSION    = "2.4";
 
     private DrawerLayout drawerLayout;
     private TextInputEditText searchEditText;
@@ -149,7 +149,7 @@ public class MainActivity extends BaseActivity {
 
     private void setupAdapters() {
         resultsAdapter = new ResultsAdapter(this, (song, seekSeconds) -> playSong(song, seekSeconds));
-        browseAdapter = new BrowseAdapter(song -> playSong(song, -1));
+        browseAdapter = new BrowseAdapter(song -> playSong(song, -1), this::showLyrics);
         resultsRecyclerView.setLayoutManager(new GridLayoutManager(this, browseColumnCount()));
         resultsRecyclerView.setLayoutAnimation(android.view.animation.AnimationUtils.loadLayoutAnimation(this, R.anim.layout_in));
         resultsRecyclerView.setAdapter(browseAdapter);
@@ -176,6 +176,26 @@ public class MainActivity extends BaseActivity {
         DebugLog.d(this, "Play", "playSong: " + song.title + " seekSeconds=" + seekSeconds);
         if (MusicPlayers.play(this, prefs.getMusicPackage(), song.audioPath, seekSeconds)) return;
         openWithChooser(song.audioPath);
+    }
+
+    /** Browse list: tapping a cover shows the whole lyrics of that song. */
+    private void showLyrics(LyricsRepository.Song song) {
+        StringBuilder sb = new StringBuilder();
+        for (LyricsRepository.LrcLine l : song.lines) sb.append(l.text).append('\n');
+        android.widget.TextView tv = new android.widget.TextView(this);
+        tv.setText(sb.toString().trim());
+        tv.setTextSize(16);
+        tv.setTextIsSelectable(true);
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        tv.setPadding(pad, pad / 2, pad, pad / 2);
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        sv.addView(tv);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(song.title)
+                .setView(sv)
+                .setPositiveButton(R.string.lyrics_play, (d, w) -> playSong(song, -1))
+                .setNegativeButton(R.string.lyrics_close, null)
+                .show();
     }
 
     private void openWithChooser(String audioPath) {
@@ -234,7 +254,9 @@ public class MainActivity extends BaseActivity {
         prefs.setLastSeenVersion(CURRENT_VERSION);
 
         String notes =
-            "v2.3  —  What's new\n\n" +
+            "v2.4  —  What's new\n\n" +
+            "• Tap a cover in your library to read the song's lyrics\n\n" +
+            "v2.3\n" +
             "• Phrase search: plain words = consecutive words (\"seni seviyorum\"), even across line breaks\n" +
             "• Comma = AND: \"aşk, yağmur\" finds songs containing both anywhere in the lyrics\n" +
             "• Words shorter than 3 letters are ignored (live hint while typing)\n" +
