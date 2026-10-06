@@ -170,6 +170,17 @@ public class SettingsActivity extends BaseActivity {
             }
         });
 
+        MaterialButtonToggleGroup langGroup = findViewById(R.id.languageToggleGroup);
+        langGroup.check("tr".equals(prefs.getLanguage()) ? R.id.langTrButton : R.id.langEnButton);
+        langGroup.addOnButtonCheckedListener((g, id, checked) -> {
+            if (!checked) return;
+            String lang = id == R.id.langTrButton ? "tr" : "en";
+            if (lang.equals(prefs.getLanguage())) return;
+            prefs.setLanguage(lang);
+            androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(
+                    androidx.core.os.LocaleListCompat.forLanguageTags(lang));
+        });
+
         themeGroup.addOnButtonCheckedListener((g, id, checked) -> {
             if (!checked) return;
             if      (id == themeLitBtn.getId()) prefs.setThemeMode(Prefs.THEME_LIGHT);

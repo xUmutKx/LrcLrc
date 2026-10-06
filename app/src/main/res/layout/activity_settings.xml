@@ -171,6 +171,25 @@
                 android:text="@string/settings_theme_dark" />
         </com.google.android.material.button.MaterialButtonToggleGroup>
 
+        <!-- Language -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" android:text="@string/settings_language"
+            android:textColor="?attr/colorOnSurface" android:textStyle="bold" android:textSize="14sp" />
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/languageToggleGroup"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="10dp" app:singleSelection="true" app:selectionRequired="true">
+            <com.google.android.material.button.MaterialButton android:id="@+id/langEnButton"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="English" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/langTrButton"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                android:text="Türkçe" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="20dp" android:gravity="center_vertical" android:orientation="horizontal">
             <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">

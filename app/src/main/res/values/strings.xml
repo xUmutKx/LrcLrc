@@ -73,11 +73,14 @@
     <string name="settings_grid_cols_landscape">Columns (landscape): %d</string>
 
     <!-- Easter egg -->
-    <string name="easter_egg_title">🎵 Seni Yakaladım!</string>
-    <string name="easter_egg_msg">Gizli modu buldun.\n\nLrcLrc v%1$s (build %2$d)\nYapımcı: xUmutKx\n\nTürkçe söz ara. Hızlıca bul. 🎶</string>
-    <string name="hint_min_letters">En az 3 harf yaz (3 harften kısa kelimeler aranmaz)</string>
-    <string name="hint_search_rules">Düz yaz = art arda gelen kelimeler · Virgül = tüm sözlerde ayrı ayrı ara</string>
-    <string name="hint_ignored">yok sayıldı (3 harften kısa): %1$s</string>
-    <string name="help_title">Arama kuralları</string>
-    <string name="help_message">• Düz yaz: birden çok kelime art arda gelen bir ifade olarak aranır. \"seni seviyorum\" iki kelimenin peş peşe geçtiği yerleri bulur (satır sonu/başı olsa bile).\n\n• Virgül kullan: her parça şarkının tüm sözlerinde herhangi bir yerde geçmeli (aynı satırda olmak zorunda değil). \"aşk, yağmur\" hem aşk hem yağmur geçen şarkıları bulur; \"seni seviyorum, yarın\" ifade + kelime arar.\n\n• En az 3 harfli kelime gerekir; daha kısa tek başına terimler yok sayılır.\n\n• Noktalama ve fazla boşluklar önemli değildir.</string>
+    <string name="easter_egg_title">🎵 Gotcha!</string>
+    <string name="easter_egg_msg">You found the secret mode.\n\nLrcLrc v%1$s (build %2$d)\nMade by xUmutKx\n\nSearch lyrics. Find them fast. 🎶</string>
+    <string name="hint_min_letters">Type at least 3 letters (words shorter than 3 letters are not searched)</string>
+    <string name="hint_search_rules">Plain text = words in a row · Comma = match each part anywhere in the lyrics</string>
+    <string name="hint_ignored">ignored (under 3 letters): %1$s</string>
+    <string name="help_title">Search rules</string>
+    <string name="help_message">• Plain text: several words are searched as one phrase, in a row. \"love you\" finds places where the two words follow each other (even across a line break).\n\n• Use a comma: every part must appear somewhere in the song\'s lyrics (not necessarily on the same line). \"love, rain\" finds songs containing both; \"love you, tomorrow\" searches a phrase plus a word.\n\n• Words need at least 3 letters; shorter terms on their own are ignored.\n\n• Punctuation and extra spaces don\'t matter.</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_library">Library</string>
+    <string name="settings_language">Language</string>
 </resources>

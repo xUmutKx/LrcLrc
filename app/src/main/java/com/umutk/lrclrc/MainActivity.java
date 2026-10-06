@@ -41,7 +41,7 @@ public class MainActivity extends BaseActivity {
 
     private static final int    REQ_LEGACY_STORAGE = 1001;
     private static final long   SEARCH_DEBOUNCE_MS = 250;
-    private static final String CURRENT_VERSION    = "2.1";
+    private static final String CURRENT_VERSION    = "2.3";
 
     private DrawerLayout drawerLayout;
     private TextInputEditText searchEditText;
@@ -234,12 +234,14 @@ public class MainActivity extends BaseActivity {
         prefs.setLastSeenVersion(CURRENT_VERSION);
 
         String notes =
-            "v2.1  —  What's new\n\n" +
+            "v2.3  —  What's new\n\n" +
             "• Phrase search: plain words = consecutive words (\"seni seviyorum\"), even across line breaks\n" +
             "• Comma = AND: \"aşk, yağmur\" finds songs containing both anywhere in the lyrics\n" +
             "• Words shorter than 3 letters are ignored (live hint while typing)\n" +
             "• Matched parts highlighted in different colors\n" +
-            "• Rules are in the menu: Arama kuralları\n\n" +
+            "• Rules are in the menu: Search rules\n" +
+            "• Lyrics with no matching audio file are hidden from results\n" +
+            "• English by default; Turkish is a switch in Settings\n\n" +
             "v2.0\n" +
             "• Streaming index: search while library is still loading\n" +
             "• Browse list: all songs with album art shown before search\n" +

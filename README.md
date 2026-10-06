@@ -2,6 +2,13 @@
 
 Search your local `.lrc` lyric files instantly and jump to the exact position in Poweramp.
 
+<p>
+  <img src="docs/screenshots/library.png" width="240" alt="Library">
+  <img src="docs/screenshots/search.png" width="240" alt="Search results">
+</p>
+
+The app is in English by default. Türkçe can be switched on in Settings → Language. Lyrics that have no matching audio file are left out of the results, since they can't be played anyway.
+
 ## Architecture
 
 ```

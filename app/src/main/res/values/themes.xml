@@ -3,12 +3,6 @@
     <style name="Theme.LRCFinder" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/seed_primary</item>
         <item name="colorOnPrimary">@color/seed_on_primary</item>
-        <!-- Status bar aynı surface rengi — fitsSystemWindows ile toolbar altına girmez -->
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">?attr/colorSurface</item>
-        <item name="android:windowTranslucentStatus">false</item>
-        <item name="android:enforceStatusBarContrast">false</item>
-        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
     <style name="Theme.LRCFinder.Amoled" parent="Theme.LRCFinder" />
 </resources>

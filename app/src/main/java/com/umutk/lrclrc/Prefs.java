@@ -92,6 +92,15 @@ public class Prefs {
         sp.edit().putBoolean(KEY_SORT_BY_HITS, v).apply();
     }
 
+    /** App language: "en" (default) or "tr". */
+    public String getLanguage() {
+        return sp.getString("language", "en");
+    }
+
+    public void setLanguage(String lang) {
+        sp.edit().putString("language", lang).apply();
+    }
+
     public int getThemeMode() {
         return sp.getInt(KEY_THEME_MODE, THEME_SYSTEM);
     }

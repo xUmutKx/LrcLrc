@@ -150,9 +150,16 @@ public class LyricsRepository {
         synchronized (this) { return liveIndex.size(); }
     }
 
+    /** Lyrics without a matching audio file can't be played and have no cover, so they are left out. */
+    private static List<Song> playableOnly(List<Song> src) {
+        List<Song> out = new ArrayList<>(src.size());
+        for (Song s : src) if (s.audioPath != null) out.add(s);
+        return out;
+    }
+
     public List<Song> getAllSongs() {
         List<Song> copy;
-        synchronized (this) { copy = new ArrayList<>(liveIndex); }
+        synchronized (this) { copy = playableOnly(liveIndex); }
         Collections.sort(copy, (a, b) -> a.title.compareToIgnoreCase(b.title));
         return copy;
     }
@@ -390,7 +397,7 @@ public class LyricsRepository {
             long t0 = System.currentTimeMillis();
 
             List<Song> snap;
-            synchronized (this) { snap = new ArrayList<>(liveIndex); }
+            synchronized (this) { snap = playableOnly(liveIndex); }
 
             boolean ci = prefs.isCaseInsensitive();
             boolean ww = prefs.isWholeWord();
