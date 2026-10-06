@@ -12,8 +12,8 @@ import java.util.Set;
  *  - Plain text            : a multi-word query is ONE phrase; the words must follow each other.
  *  - Comma separated parts : every part must occur somewhere in the song (AND), not necessarily
  *                            on the same line. Each part itself is a phrase.
- *  - A part needs at least one word of 3+ letters/digits, otherwise it is ignored (short words
- *    inside a longer phrase are kept so the phrase stays contiguous).
+ *  - Words of 1-2 letters never count: they are removed from the query and from the lyrics, so a phrase
+ *    is matched on its main words only; a part made only of short words is ignored.
  *  - Matching runs on normalized text: Turkish lower case, anything that is not a letter or
  *    digit becomes a single space. Phrases may span line breaks.
  */
@@ -47,20 +47,24 @@ public final class SearchLogic {
         Norm(String t, int[] m) { text = t; rawIdx = m; }
     }
 
+    private static boolean isWordChar(char c) {
+        return Character.isLetterOrDigit(c) || Character.isSurrogate(c) || Character.getType(c) == Character.NON_SPACING_MARK;
+    }
+
+    /** Words shorter than MIN_WORD_LEN are dropped (in the query and in the lyrics), so they never influence a result. */
     public static Norm normalize(String raw, boolean ci) {
         StringBuilder sb = new StringBuilder(raw.length());
         int[] map = new int[raw.length() + 1];
-        boolean pendingSpace = false;
-        for (int i = 0; i < raw.length(); i++) {
-            char c = raw.charAt(i);
-            if (Character.isLetterOrDigit(c) || Character.isSurrogate(c) || Character.getType(c) == Character.NON_SPACING_MARK) {
-                if (pendingSpace && sb.length() > 0) { map[sb.length()] = i - 1; sb.append(' '); }
-                pendingSpace = false;
-                map[sb.length()] = i;
-                sb.append(ci ? trLowerChar(c) : c);
-            } else {
-                pendingSpace = true;
+        int i = 0, n = raw.length();
+        while (i < n) {
+            if (!isWordChar(raw.charAt(i))) { i++; continue; }
+            int j = i;
+            while (j < n && isWordChar(raw.charAt(j))) j++;
+            if (j - i >= MIN_WORD_LEN) {
+                if (sb.length() > 0) { map[sb.length()] = i - 1 < 0 ? 0 : i - 1; sb.append(' '); }
+                for (int k = i; k < j; k++) { char c = raw.charAt(k); map[sb.length()] = k; sb.append(ci ? trLowerChar(c) : c); }
             }
+            i = j;
         }
         int[] m = new int[sb.length()];
         System.arraycopy(map, 0, m, 0, sb.length());
@@ -85,10 +89,7 @@ public final class SearchLogic {
             String trimmed = piece.trim();
             if (trimmed.isEmpty()) continue;
             String norm = normalize(trimmed, ci).text;
-            if (norm.isEmpty()) continue;
-            boolean ok = false;
-            for (String w : norm.split(" ")) if (w.length() >= MIN_WORD_LEN) { ok = true; break; }
-            if (!ok) { out.ignored.add(trimmed); continue; }
+            if (norm.isEmpty()) { out.ignored.add(trimmed); continue; }
             if (seen.add(norm)) out.parts.add(norm);
         }
         return out;

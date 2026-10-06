@@ -1,3 +1,8 @@
 .gradle/
 build/
 local.properties
+.nomedia
+*.apk
+build/
+.gradle/
+local.properties

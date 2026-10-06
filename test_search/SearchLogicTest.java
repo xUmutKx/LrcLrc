@@ -27,7 +27,8 @@ public class SearchLogicTest {
         SearchLogic.Query q = SearchLogic.parse("aşk, ab, yağmur", true);
         check(q.parts.size() == 2 && q.ignored.size() == 1 && q.ignored.get(0).equals("ab"), "short part ignored in list");
         check(match(song, "aşk, ab", true, false), "remaining part still searched");
-        check(match(song, "ve sen", true, false), "short words inside phrase kept");
+        check(!match(song, "ve", true, false), "only short words -> ignored");
+        check(match(song, "bitti ve sen", true, false) == match(song, "bitti sen", true, false), "short words inside phrase do not matter");
         check(match(song, "\"seni seviyorum\"", true, false), "quotes harmless");
         check(match(song, "sev", true, false) && !match(song, "sev", true, true), "ww: substring vs whole word");
         check(match(song, "aşk bitti", true, true), "ww phrase");
@@ -40,12 +41,12 @@ public class SearchLogicTest {
         List<int[]> segs = SearchLogic.segmentsFor(idx, occ.get(0)[0], occ.get(0)[1]);
         int[] rr = SearchLogic.rawRange(song.get(0), true, segs.get(0)[1], segs.get(0)[2]);
         check(song.get(0).substring(rr[0], rr[0] + rr[1]).equals("seviyorum, gerçekten"), "raw highlight spans punctuation: " + song.get(0).substring(rr[0], rr[0] + rr[1]));
-        occ = SearchLogic.find(idx, "bitti ve sen", false);
+        occ = SearchLogic.find(idx, "bitti sen", false);
         segs = SearchLogic.segmentsFor(idx, occ.get(0)[0], occ.get(0)[1]);
         check(segs.size() == 2 && segs.get(0)[0] + 1 == segs.get(1)[0], "cross-line gives 2 segments");
         int[] r1 = SearchLogic.rawRange(song.get(2), true, segs.get(0)[1], segs.get(0)[2]);
         int[] r2 = SearchLogic.rawRange(song.get(3), true, segs.get(1)[1], segs.get(1)[2]);
-        check(song.get(2).substring(r1[0], r1[0] + r1[1]).equals("bitti") && song.get(3).substring(r2[0], r2[0] + r2[1]).equals("ve  sen"), "cross-line raw ranges");
+        check(song.get(2).substring(r1[0], r1[0] + r1[1]).equals("bitti") && song.get(3).substring(r2[0], r2[0] + r2[1]).equals("sen"), "cross-line raw ranges");
         // perf
         List<List<String>> songs = new ArrayList<>();
         Random rnd = new Random(1);
