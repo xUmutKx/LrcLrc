@@ -6,6 +6,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">?attr/colorSurface</item>
         <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>

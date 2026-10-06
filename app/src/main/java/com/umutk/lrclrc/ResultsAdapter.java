@@ -71,7 +71,12 @@ public class ResultsAdapter extends RecyclerView.Adapter<ResultsAdapter.VH> {
         AlbumArtLoader.getInstance().load(h.itemView.getContext(), song.audioPath, h.albumArt);
 
         int firstSeek = firstSeekSeconds(song);
-        h.playButton.setOnClickListener(v -> listener.onPlay(song, firstSeek));
+        h.playButton.setOnClickListener(v -> {
+            v.animate().scaleX(0.82f).scaleY(0.82f).setDuration(90).withEndAction(() ->
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(220)
+                            .setInterpolator(new android.view.animation.OvershootInterpolator(3f)).start()).start();
+            listener.onPlay(song, firstSeek);
+        });
         h.itemView.setOnClickListener(v -> listener.onPlay(song, firstSeek));
     }
 

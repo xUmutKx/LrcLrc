@@ -25,6 +25,7 @@ public class Prefs {
     private static final String KEY_THEME_MODE = "theme_mode";
     private static final String KEY_AMOLED = "amoled";
     private static final String KEY_HISTORY = "history";
+    private static final String KEY_MUSIC_PKG = "music_pkg";
 
     public static final int THEME_SYSTEM = 0;
     public static final int THEME_LIGHT = 1;
@@ -170,4 +171,13 @@ public class Prefs {
     // app's design — only songs with a parsed .lrc file are indexed. Kept as a constant
     // (not a real toggle) so the design decision is documented in one place.
     public static final boolean LYRICS_ONLY_LIBRARY = true;
+
+    /** Package of the music app songs open in; empty = ask every time. */
+    public String getMusicPackage() {
+        return sp.getString(KEY_MUSIC_PKG, "");
+    }
+
+    public void setMusicPackage(String pkg) {
+        sp.edit().putString(KEY_MUSIC_PKG, pkg == null ? "" : pkg).apply();
+    }
 }

@@ -8,6 +8,10 @@
 
     <queries>
         <package android:name="com.maxmpz.audioplayer" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="audio/*" />
+        </intent>
     </queries>
 
     <application

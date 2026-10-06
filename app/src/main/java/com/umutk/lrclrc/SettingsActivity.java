@@ -106,6 +106,30 @@ public class SettingsActivity extends BaseActivity {
             default:                themeGroup.check(themeSysBtn.getId());
         }
 
+        // ── Default music app ─────────────────────────────────────────────
+        MaterialButton musicBtn = findViewById(R.id.musicAppButton);
+        updateMusicButton(musicBtn);
+        musicBtn.setOnClickListener(v -> {
+            java.util.Map<String, String> apps = MusicPlayers.installed(this);
+            java.util.List<String> pkgs = new java.util.ArrayList<>(apps.keySet());
+            String[] names = new String[pkgs.size() + 1];
+            names[0] = getString(R.string.settings_music_ask);
+            int checked = 0;
+            for (int i = 0; i < pkgs.size(); i++) {
+                names[i + 1] = apps.get(pkgs.get(i));
+                if (pkgs.get(i).equals(prefs.getMusicPackage())) checked = i + 1;
+            }
+            new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.settings_music_app)
+                    .setSingleChoiceItems(names, checked, (d, which) -> {
+                        prefs.setMusicPackage(which == 0 ? "" : pkgs.get(which - 1));
+                        updateMusicButton(musicBtn);
+                        d.dismiss();
+                    })
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+        });
+
         // ── Listeners ─────────────────────────────────────────────────────
         chooseFolderBtn.setOnClickListener(v ->
                 folderPicker.launch(Uri.parse(
@@ -251,5 +275,10 @@ public class SettingsActivity extends BaseActivity {
                     + "/" + seg.substring("primary:".length());
         }
         return Environment.getExternalStorageDirectory().getAbsolutePath();
+    }
+
+    private void updateMusicButton(MaterialButton b) {
+        String pkg = prefs.getMusicPackage();
+        b.setText(pkg.isEmpty() ? getString(R.string.settings_music_ask) : MusicPlayers.label(this, pkg));
     }
 }

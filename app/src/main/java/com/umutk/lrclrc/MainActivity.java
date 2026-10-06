@@ -112,7 +112,6 @@ public class MainActivity extends BaseActivity {
 
     private void bindViews() {
         drawerLayout        = findViewById(R.id.drawerLayout);
-        drawerLayout.setStatusBarBackgroundColor(android.graphics.Color.TRANSPARENT);
         searchEditText      = findViewById(R.id.searchEditText);
         statusText          = findViewById(R.id.statusText);
         emptyStateText      = findViewById(R.id.emptyStateText);
@@ -152,6 +151,7 @@ public class MainActivity extends BaseActivity {
         resultsAdapter = new ResultsAdapter(this, (song, seekSeconds) -> playSong(song, seekSeconds));
         browseAdapter = new BrowseAdapter(song -> playSong(song, -1));
         resultsRecyclerView.setLayoutManager(new GridLayoutManager(this, browseColumnCount()));
+        resultsRecyclerView.setLayoutAnimation(android.view.animation.AnimationUtils.loadLayoutAnimation(this, R.anim.layout_in));
         resultsRecyclerView.setAdapter(browseAdapter);
         isShowingBrowse = true;
     }
@@ -174,6 +174,7 @@ public class MainActivity extends BaseActivity {
             return;
         }
         DebugLog.d(this, "Play", "playSong: " + song.title + " seekSeconds=" + seekSeconds);
+        if (MusicPlayers.play(this, prefs.getMusicPackage(), song.audioPath, seekSeconds)) return;
         openWithChooser(song.audioPath);
     }
 
@@ -390,6 +391,7 @@ public class MainActivity extends BaseActivity {
         if (!isShowingBrowse) {
             resultsRecyclerView.setLayoutManager(new GridLayoutManager(this, browseColumnCount()));
             resultsRecyclerView.setAdapter(browseAdapter);
+            resultsRecyclerView.scheduleLayoutAnimation();
             isShowingBrowse = true;
         }
         emptyStateText.setVisibility(all.isEmpty() ? View.VISIBLE : View.GONE);
@@ -432,6 +434,7 @@ public class MainActivity extends BaseActivity {
         LyricsRepository.getInstance().search(query, prefs,
             (results, totalMatches, elapsed) -> runOnUiThread(() -> {
                 resultsAdapter.submit(results);
+                resultsRecyclerView.scheduleLayoutAnimation();
                 if (results.isEmpty()) {
                     String suffix = LyricsRepository.getInstance().isIndexing()
                             ? " (still indexing…)" : "";

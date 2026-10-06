@@ -35,6 +35,10 @@
     <string name="settings_context_lines">Context lines: %d</string>
     <string name="settings_max_results">Max results</string>
 
+    <string name="settings_music_app">Default music app</string>
+    <string name="settings_music_ask">Ask every time</string>
+    <string name="settings_music_desc">Songs play straight in this app; if that fails it is opened instead.</string>
+    <string name="music_opened_instead">Could not start playback; opened %s instead.</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_light">Light</string>
