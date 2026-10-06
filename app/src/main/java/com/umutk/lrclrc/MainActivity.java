@@ -112,6 +112,7 @@ public class MainActivity extends BaseActivity {
 
     private void bindViews() {
         drawerLayout        = findViewById(R.id.drawerLayout);
+        drawerLayout.setStatusBarBackgroundColor(android.graphics.Color.TRANSPARENT);
         searchEditText      = findViewById(R.id.searchEditText);
         statusText          = findViewById(R.id.statusText);
         emptyStateText      = findViewById(R.id.emptyStateText);
